@@ -82,7 +82,7 @@ if (maek.OS === "windows") {
 		`-O2`, //optimize
 		//include paths for nest libraries:
 		`-I${NEST_LIBS}/SDL2/include/SDL2`, `-D_THREAD_SAFE`, //the output of sdl-config --cflags
-		`-I${NEST_LIBS}/glm/include`,
+		`-I${NEST_LIBS}/glm/include`, `-Wno-deprecated-declarations`, //because of vsprintf in string_cast
 		`-I${NEST_LIBS}/libpng/include`,
 		`-I${NEST_LIBS}/opusfile/include`,
 		`-I${NEST_LIBS}/libopus/include`,

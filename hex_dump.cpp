@@ -1,5 +1,7 @@
 #include "hex_dump.hpp"
 
+#include <cstdint>
+
 std::string hex_dump(void const *data, size_t size) {
 	//format of dump will be as per xxd:
 	//0000ADDR: xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx  asciitextfordump

@@ -64,6 +64,7 @@ int main(int argc, char **argv) {
 #include <list>
 #include <string>
 #include <functional>
+#include <cstdint>
 
 //Thin wrapper around a (polling-based) TCP socket connection:
 struct Connection {

@@ -8,7 +8,7 @@ dist/README-libopus.txt
 dist/README-opusfile.txt
 dist/README-freetype.txt
 dist/README-harfbuzz.txt
-dist/SDL2.dll
+dist/SDL3.dll
 dist/game
 dist/game.exe
 dist/game.pdb

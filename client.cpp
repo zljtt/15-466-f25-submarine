@@ -64,8 +64,13 @@ int main(int argc, char **argv) {
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
 
 	//create window:
+<<<<<<< HEAD:client.cpp
 	SDL_Window *window = SDL_CreateWindow(
 		"gp25 game5: multiplayer", //TODO: remember to set a title for your game!
+=======
+	Mode::window = SDL_CreateWindow(
+		"gp25 game3: require sound", //TODO: remember to set a title for your game!
+>>>>>>> sound updated for SDL3 and also some honking added.:main.cpp
 		1280, 720, //TODO: modify window size if you'd like
 		SDL_WINDOW_OPENGL
 		| SDL_WINDOW_RESIZABLE //uncomment to allow resizing

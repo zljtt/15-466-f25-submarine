@@ -42,6 +42,9 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			controls.jump.downs += 1;
 			controls.jump.pressed = true;
 			return true;
+		} else if (evt.key.key == SDLK_SPACE) {
+			if (honk_oneshot) honk_oneshot->stop();
+			honk_oneshot = Sound::play_3D(*honk_sample, 0.3f, glm::vec3(4.6f, -7.8f, 6.9f)); //hardcoded position of front of car, from blender
 		}
 	} else if (evt.type == SDL_EVENT_KEY_UP) {
 		if (evt.key.keysym.sym == SDLK_A) {

@@ -6,6 +6,7 @@
 #include "hex_dump.hpp"
 
 #include <glm/gtc/type_ptr.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/string_cast.hpp>
 
 #include <random>
@@ -22,44 +23,41 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 	if (evt.type == SDL_EVENT_KEY_DOWN) {
 		if (evt.key.repeat) {
 			//ignore repeats
-		} else if (evt.key.keysym.sym == SDLK_A) {
+		} else if (evt.key.key == SDLK_A) {
 			controls.left.downs += 1;
 			controls.left.pressed = true;
 			return true;
-		} else if (evt.key.keysym.sym == SDLK_D) {
+		} else if (evt.key.key == SDLK_D) {
 			controls.right.downs += 1;
 			controls.right.pressed = true;
 			return true;
-		} else if (evt.key.keysym.sym == SDLK_W) {
+		} else if (evt.key.key == SDLK_W) {
 			controls.up.downs += 1;
 			controls.up.pressed = true;
 			return true;
-		} else if (evt.key.keysym.sym == SDLK_S) {
+		} else if (evt.key.key == SDLK_S) {
 			controls.down.downs += 1;
 			controls.down.pressed = true;
 			return true;
-		} else if (evt.key.keysym.sym == SDLK_SPACE) {
+		} else if (evt.key.key == SDLK_SPACE) {
 			controls.jump.downs += 1;
 			controls.jump.pressed = true;
 			return true;
-		} else if (evt.key.key == SDLK_SPACE) {
-			if (honk_oneshot) honk_oneshot->stop();
-			honk_oneshot = Sound::play_3D(*honk_sample, 0.3f, glm::vec3(4.6f, -7.8f, 6.9f)); //hardcoded position of front of car, from blender
 		}
 	} else if (evt.type == SDL_EVENT_KEY_UP) {
-		if (evt.key.keysym.sym == SDLK_A) {
+		if (evt.key.key == SDLK_A) {
 			controls.left.pressed = false;
 			return true;
-		} else if (evt.key.keysym.sym == SDLK_D) {
+		} else if (evt.key.key == SDLK_D) {
 			controls.right.pressed = false;
 			return true;
-		} else if (evt.key.keysym.sym == SDLK_W) {
+		} else if (evt.key.key == SDLK_W) {
 			controls.up.pressed = false;
 			return true;
-		} else if (evt.key.keysym.sym == SDLK_S) {
+		} else if (evt.key.key == SDLK_S) {
 			controls.down.pressed = false;
 			return true;
-		} else if (evt.key.keysym.sym == SDLK_SPACE) {
+		} else if (evt.key.key == SDLK_SPACE) {
 			controls.jump.pressed = false;
 			return true;
 		}

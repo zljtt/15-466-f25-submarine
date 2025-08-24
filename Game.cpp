@@ -6,6 +6,7 @@
 #include <iostream>
 #include <cstring>
 
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/norm.hpp>
 
 void Player::Controls::send_controls_message(Connection *connection_) const {

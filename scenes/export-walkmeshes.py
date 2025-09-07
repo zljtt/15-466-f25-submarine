@@ -137,7 +137,7 @@ for obj in bpy.data.objects:
 	bpy.ops.object.mode_set(mode='OBJECT')
 
 	#compute normals (respecting face smoothing):
-	mesh.calc_normals_split()
+	if 'calc_normals_split' in mesh: mesh.calc_normals_split()
 
 	#store the beginning indices:
 	vertex_begin = position_count

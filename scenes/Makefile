@@ -3,12 +3,14 @@
 #n.b. the '-y' sets autoexec scripts to 'on' so that driver expressions will work
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
-	BLENDER = /Applications/Blender/blender.app/Contents/MacOS/blender -y
+	BLENDER = /Applications/Blender.app/Contents/MacOS/Blender -y
 else ifeq ($(UNAME_S),Linux)
-	BLENDER = ../../blender-4.5.0-linux-x64/blender -y
+	BLENDER = ../../blender-4.5.2-linux-x64/blender -y
 else
 	BLENDER = blender
 endif
+
+EXPORT_MESHES=export-meshes.py
 
 EXPORT_MESHES=export-meshes.py
 EXPORT_WALKMESHES=export-walkmeshes.py

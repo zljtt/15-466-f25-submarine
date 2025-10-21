@@ -10,17 +10,22 @@ else
 	BLENDER = blender
 endif
 
-EXPORT_MESHES=export-meshes.py
+EXPORT_PREFAB_MESHES=export-meshes.py
+EXPORT_SCENE_MESHES=export-meshes.py
 EXPORT_SCENE=export-scene.py
 
 DIST=../dist
 
 all : \
-	$(DIST)/prototype.pnct \
+	$(DIST)/prototype_prefab.pnct \
+	$(DIST)/prototype_scene.pnct \
 	$(DIST)/prototype.scene \
 
-$(DIST)/prototype.pnct : prototype.blend $(EXPORT_MESHES)
-	$(BLENDER) --background --python $(EXPORT_MESHES) -- '$<':Main '$@'
+$(DIST)/prototype_prefab.pnct : prototype.blend $(EXPORT_PREFAB_MESHES)
+	$(BLENDER) --background --python $(EXPORT_PREFAB_MESHES) -- '$<':Prefab '$@'
+
+$(DIST)/prototype_scene.pnct : prototype.blend $(EXPORT_SCENE_MESHES)
+	$(BLENDER) --background --python $(EXPORT_SCENE_MESHES) -- '$<':Scene '$@'
 
 $(DIST)/prototype.scene : prototype.blend $(EXPORT_SCENE)
-	$(BLENDER) --background --python $(EXPORT_SCENE) -- '$<':Main '$@'
+	$(BLENDER) --background --python $(EXPORT_SCENE) -- '$<':Scene '$@'

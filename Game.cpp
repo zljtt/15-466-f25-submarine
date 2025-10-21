@@ -92,9 +92,11 @@ Player *Game::spawn_player()
     players.emplace_back();
     Player &player = players.back();
     player.id = dist(mt);
+    player.position.x = 0;
+    player.position.y = 0;
     player.color = glm::normalize(player.color);
     player.name = "Player " + std::to_string(next_player_number++);
-
+    player.scale = glm::vec2(1, 1);
     do
     {
         player.color.r = mt() / float(mt.max());
@@ -111,6 +113,7 @@ NetworkObject *Game::spawn_object()
     NetworkObject &obj = game_objects.back();
     obj.position.x = 0;
     obj.position.y = 0;
+    obj.scale = glm::vec2(1, 1);
     obj.id = dist(mt);
     return &obj;
 }
@@ -160,7 +163,28 @@ void Game::update(float elapsed)
         if (p.controls.up.pressed)
             dir.y += 1.0f;
 
-        p.position += dir * elapsed * 20.0f;
+        if (dir != glm::vec2(0.0f))
+            dir = glm::normalize(dir);
+        glm::vec2 delta = dir * 20.0f * elapsed;
+
+        p.position.x += delta.x;
+        // if overlapping any obstacle, push out on X
+        for (int pass = 0; pass < 2; ++pass)
+        { // a couple passes helps in corners
+            for (const auto &o : static_obstacles)
+            {
+                resolveAxis(p, o, 0);
+            }
+        }
+
+        p.position.y += delta.y;
+        for (int pass = 0; pass < 2; ++pass)
+        {
+            for (const auto &o : static_obstacles)
+            {
+                resolveAxis(p, o, 1);
+            }
+        }
 
         // reset 'downs' since controls have been handled:
         p.controls.left.downs = 0;

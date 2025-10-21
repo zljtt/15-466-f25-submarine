@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Scene.hpp"
+#include "CollisionObject.hpp"
 
 #include <glm/glm.hpp>
 
@@ -29,10 +30,9 @@ struct Button
     bool pressed = false; // is the button pressed now
 };
 
-struct NetworkObject
+struct NetworkObject : CollisionObject
 {
     uint32_t id;
-    glm::vec2 position = glm::vec2(0.0f, 0.0f);
     glm::vec2 velocity = glm::vec2(0.0f, 0.0f);
     NetworkObject() {};
     virtual ~NetworkObject() {};
@@ -68,20 +68,21 @@ struct Player : NetworkObject
 
 struct Game
 {
+    // common
     std::list<Player> players; //(using list so they can have stable addresses)
+    // for local
     uint32_t local_player;
     // for server
-    std::list<NetworkObject> game_objects;
-    // for client
+    std::list<NetworkObject> game_objects;       // the game object, they also have collision box, so it need to be checked during collision
+    std::list<CollisionObject> static_obstacles; // the collision box should not be sync, instead generated from the scene on both server and client (if the client needs it)
+    std::mt19937 mt;                             // used for spawning players
+    std::uniform_int_distribution<uint32_t> dist;
+    uint32_t next_player_number = 1; // used for naming players
 
     Player *spawn_player(); // add player the end of the players list (may also, e.g., play some spawn anim)
     NetworkObject *spawn_object();
     void remove_player(Player *); // remove player from game (may also, e.g., play some despawn anim)
     void remove_object(NetworkObject *);
-
-    std::mt19937 mt; // used for spawning players
-    std::uniform_int_distribution<uint32_t> dist;
-    uint32_t next_player_number = 1; // used for naming players
 
     Game();
 

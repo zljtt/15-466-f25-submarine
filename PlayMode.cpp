@@ -17,9 +17,9 @@
 
 GLuint meshes_for_lit_color_texture_program = 0;
 
-Load<MeshBuffer> meshes(LoadTagDefault, []() -> MeshBuffer const *
-                        {
-	MeshBuffer const *ret = new MeshBuffer(data_path("prototype.pnct"));
+Load<MeshBuffer> prototype_scene_meshes(LoadTagDefault, []() -> MeshBuffer const *
+                                        {
+	MeshBuffer const *ret = new MeshBuffer(data_path("prototype_scene.pnct"));
 	meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
 	return ret; });
 
@@ -28,7 +28,7 @@ Load<Scene> prototype_scene(LoadTagDefault, []() -> Scene const *
     auto on_drawable = [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name) {
         if (mesh_name == "Player") return;
 
-        Mesh const &mesh = meshes->lookup(mesh_name);
+        Mesh const &mesh = prototype_scene_meshes->lookup(mesh_name);
         scene.drawables.emplace_back(transform);
         Scene::Drawable &drawable = scene.drawables.back();
 

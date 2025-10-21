@@ -21,5 +21,5 @@ struct Prefab
 
     Scene::Drawable *create_drawable(Scene &scene, glm::vec3 pos, glm::vec3 scale, glm::quat rotation) const;
 };
-
+extern Load<MeshBuffer> prototype_prefab_meshes;
 extern Load<Prefab> prefab_player;

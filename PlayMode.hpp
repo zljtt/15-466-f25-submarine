@@ -47,5 +47,5 @@ struct PlayMode : Mode
 };
 
 extern GLuint meshes_for_lit_color_texture_program;
-extern Load<MeshBuffer> meshes;
+extern Load<MeshBuffer> prototype_scene_meshes;
 extern Load<Scene> prototype_scene;

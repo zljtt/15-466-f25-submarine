@@ -10,6 +10,7 @@
 #include <iostream>
 #include <cassert>
 #include <unordered_map>
+#include "data_path.hpp"
 
 #ifdef _WIN32
 extern "C"
@@ -56,6 +57,13 @@ int main(int argc, char **argv)
         std::unordered_map<Connection *, Player *> connection_to_player;
         // keep track of game state:
         Game game;
+
+        auto on_drawable = [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name)
+        {
+            // create collision box
+            game.static_obstacles.emplace_back(transform->position, transform->scale);
+        };
+        Scene(data_path("prototype.scene"), on_drawable);
 
         while (true)
         {

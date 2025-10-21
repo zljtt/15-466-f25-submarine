@@ -4,8 +4,15 @@
 #include "Mesh.hpp"
 #include "Scene.hpp"
 #include "LitColorTextureProgram.hpp"
+#include "data_path.hpp"
 
 #include <glm/glm.hpp>
+
+Load<MeshBuffer> prototype_prefab_meshes(LoadTagDefault, []() -> MeshBuffer const *
+                                         {
+	MeshBuffer const *ret = new MeshBuffer(data_path("prototype_prefab.pnct"));
+	meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
+	return ret; });
 
 Load<Prefab> prefab_player(LoadTagLate, []() -> Prefab const *
                            { return new Prefab("Player"); });
@@ -33,5 +40,5 @@ Scene::Drawable *Prefab::create_drawable(Scene &scene, glm::vec3 pos, glm::vec3 
 
 Prefab::Prefab(std::string n) : name(n)
 {
-    mesh = meshes->lookup(n);
+    mesh = prototype_prefab_meshes->lookup(n);
 };

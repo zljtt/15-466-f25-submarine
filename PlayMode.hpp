@@ -8,6 +8,8 @@
 #include "Scene.hpp"
 #include "Prefab.hpp"
 #include "Load.hpp"
+#include "Raycast.hpp"
+#include "Radar.hpp"
 
 #include <glm/glm.hpp>
 
@@ -25,13 +27,18 @@ struct PlayMode : Mode
     // functions called by main loop:
     virtual bool handle_event(SDL_Event const &, glm::uvec2 const &window_size) override;
     virtual void update(float elapsed) override;
-    virtual void update_control(float elapsed);
+    void update_control(float elapsed);
+    void update_connection(float elapsed);
+    void update_radar(float elapsed);
+    void update_camera(float elapsed);
     virtual void draw(glm::uvec2 const &drawable_size) override;
 
-    //----- game state -----
+    //----- client game state -----
     Scene::Camera *camera = nullptr;
     Scene scene;
-    std::unordered_map<uint32_t, Scene::Drawable *> drawables;
+    std::unordered_map<uint32_t, Scene::Drawable *> network_drawables;
+    Radar radar;
+    float radar_timer;
 
     // input tracking for local player:
     Player::Controls controls;
@@ -44,6 +51,10 @@ struct PlayMode : Mode
 
     // connection to server:
     Client &client;
+
+    // helper functions
+    void draw_overlay(glm::uvec2 const &drawable_size);
+    glm::vec2 local_player_pos();
 };
 
 extern GLuint meshes_for_lit_color_texture_program;

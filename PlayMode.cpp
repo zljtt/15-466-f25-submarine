@@ -36,7 +36,9 @@ Load<Scene> prototype_scene(LoadTagDefault, []() -> Scene const *
         drawable.pipeline.vao = meshes_for_lit_color_texture_program;
         drawable.pipeline.type = mesh.type;
         drawable.pipeline.start = mesh.start;
-        drawable.pipeline.count = mesh.count; 
+        drawable.pipeline.count = mesh.count;
+        
+        scene.static_obstacles.emplace_back(transform->position, transform->scale);
     };
     return new Scene(data_path("prototype.scene"), on_drawable); });
 
@@ -46,13 +48,11 @@ PlayMode::PlayMode(Client &client_) : scene(*prototype_scene), client(client_)
     if (scene.cameras.size() != 1)
         throw std::runtime_error("Expecting scene to have exactly one camera, but it has " + std::to_string(scene.cameras.size()));
     camera = &scene.cameras.front();
+    // put static obstacles
+    radar.put_obstacles(scene.static_obstacles);
 }
 
 PlayMode::~PlayMode()
-{
-}
-
-void create_game_object()
 {
 }
 
@@ -144,31 +144,9 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 void PlayMode::update(float elapsed)
 {
     update_control(elapsed);
-
-    // send/receive data:
-    client.poll([this](Connection *c, Connection::Event event)
-                {
-		if (event == Connection::OnOpen) {
-			std::cout << "[" << c->socket << "] opened" << std::endl;
-		} else if (event == Connection::OnClose) {
-			std::cout << "[" << c->socket << "] closed (!)" << std::endl;
-			throw std::runtime_error("Lost connection to server!");
-		} else { assert(event == Connection::OnRecv);
-			//std::cout << "[" << c->socket << "] recv'd data. Current buffer:\n" << hex_dump(c->recv_buffer); std::cout.flush(); //DEBUG
-			bool handled_message;
-			try {
-				do {
-					handled_message = false;
-					if (game.recv_state_message(c, drawables, scene)) handled_message = true;
-				} while (handled_message);
-			} catch (std::exception const &e) {
-				std::cerr << "[" << c->socket << "] malformed message from server: " << e.what() << std::endl;
-				//quit the game:
-				throw e;
-			}
-		} }, 0.0);
-    glm::vec2 local_pos = drawables[game.local_player]->transform->position;
-    camera->transform->position = glm::vec3(local_pos.x, local_pos.y, 20);
+    update_connection(elapsed);
+    update_radar(elapsed);
+    update_camera(elapsed);
 }
 
 void PlayMode::update_control(float elapsed)
@@ -182,6 +160,88 @@ void PlayMode::update_control(float elapsed)
     controls.up.downs = 0;
     controls.down.downs = 0;
     controls.jump.downs = 0;
+}
+
+void PlayMode::update_connection(float elapsed)
+{
+    auto on_player = [&](Player &player)
+    {
+        auto drawable = network_drawables.find(player.id);
+        // create drawable if not exit on client
+        if (drawable == network_drawables.end())
+        {
+            network_drawables[player.id] = prefab_player->create_drawable(scene, glm::vec3(player.position, 0));
+        }
+        // update drawable position
+        else
+        {
+            drawable->second->transform->position = glm::vec3(player.position, 0);
+            drawable->second->transform->scale = glm::vec3(player.scale, 1);
+        }
+    };
+
+    auto on_game_object = [&](NetworkObject &obj)
+    {
+        auto drawable = network_drawables.find(obj.id);
+        // create drawable if not exit on client
+        if (drawable == network_drawables.end())
+        {
+            // TODO: create drawable according to the object type
+        }
+        // update drawable position
+        else
+        {
+            drawable->second->transform->position = glm::vec3(obj.position, 0);
+            drawable->second->transform->scale = glm::vec3(obj.scale, 1);
+        }
+    };
+    // send/receive data:
+    client.poll([this, on_player, on_game_object](Connection *c, Connection::Event event)
+                {
+		if (event == Connection::OnOpen) {
+			std::cout << "[" << c->socket << "] opened" << std::endl;
+		} else if (event == Connection::OnClose) {
+			std::cout << "[" << c->socket << "] closed (!)" << std::endl;
+			throw std::runtime_error("Lost connection to server!");
+		} else { assert(event == Connection::OnRecv);
+			//std::cout << "[" << c->socket << "] recv'd data. Current buffer:\n" << hex_dump(c->recv_buffer); std::cout.flush(); //DEBUG
+			bool handled_message;
+			try {
+				do {
+					handled_message = false;
+					if (game.recv_state_message(c, on_player, on_game_object)) handled_message = true;
+				} while (handled_message);
+			} catch (std::exception const &e) {
+				std::cerr << "[" << c->socket << "] malformed message from server: " << e.what() << std::endl;
+				//quit the game:
+				throw e;
+			}
+		} }, 0.0);
+}
+
+void PlayMode::update_radar(float elapsed)
+{
+    radar_timer -= elapsed;
+    if (radar_timer < 0)
+    {
+        radar_timer = Radar::RADAR_INTERVAL;
+        // copy player and dynamic object to additional
+        std::list<GameObject> additional;
+        for (auto &p : game.players)
+        {
+            if (&p != game.local_player)
+                additional.push_back(p);
+        }
+        additional.insert(additional.end(), game.game_objects.begin(), game.game_objects.end());
+        radar.additional = additional;
+        radar.scan(game.local_player, Radar::RADAR_RANGE, Radar::RADAR_RAY_COUNT);
+    }
+}
+
+void PlayMode::update_camera(float elapsed)
+{
+    glm::vec2 local_pos = network_drawables[game.local_player->id]->transform->position;
+    camera->transform->position = glm::vec3(local_pos.x, local_pos.y, camera->transform->position.z);
 }
 
 void PlayMode::draw(glm::uvec2 const &drawable_size)
@@ -204,5 +264,47 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
     glDepthFunc(GL_LESS); // this is the default depth comparison function, but FYI you can change it.
 
     scene.draw(*camera);
+
     GL_ERRORS();
+
+    draw_overlay(drawable_size);
+}
+
+void PlayMode::draw_overlay(glm::uvec2 const &drawable_size)
+{
+
+    glDisable(GL_DEPTH_TEST);
+
+    float aspect = float(drawable_size.x) / float(drawable_size.y);
+    glm::vec3 eye = camera->transform->position;
+    glm::vec3 fwd = {0, 0, -1};
+    glm::vec3 up = {0, 1, 0};
+    glm::mat4 V = glm::lookAt(eye, eye + fwd, up);
+    glm::mat4 P = glm::perspective(camera->fovy, aspect, 0.1f, 1000.0f);
+    DrawLines hud(P * V);
+
+    auto draw_dot = [&](glm::vec3 p)
+    {
+        float s = 0.1f;
+        hud.draw(p + glm::vec3(-s, 0, 0), p + glm::vec3(s, 0, 0));
+        hud.draw(p + glm::vec3(0, -s, 0), p + glm::vec3(0, s, 0));
+    };
+
+    // glm::vec2 player_pos = local_player_pos();
+    std::vector<RaycastResult> hits = radar.last_radar_hits;
+    // radar.raycast_surrounding(player_pos, Radar::RADAR_RANGE, Radar::RADAR_RAY_COUNT, hits);
+
+    for (const auto &h : hits)
+    {
+        glm::vec3 hitP = {h.point.x, h.point.y, 0};
+        draw_dot(hitP);
+        // hud.draw(hitP, {player_pos, 0});
+    }
+    // hud.draw(player_pos, glm::vec3(0, 0, 0));
+}
+
+glm::vec2 PlayMode::local_player_pos()
+{
+    glm::vec3 p = network_drawables[game.local_player->id]->transform->position;
+    return {p.x, p.y};
 }

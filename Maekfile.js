@@ -177,7 +177,8 @@ const common_names = [
     maek.CPP('GL.cpp'),
     maek.CPP('Load.cpp'),
     maek.CPP('Connection.cpp'),
-
+    maek.CPP('GameObject.cpp'),
+    maek.CPP('Radar.cpp'),
     maek.CPP('PlayMode.cpp'),
     maek.CPP('Prefab.cpp'),
     maek.CPP('LitColorTextureProgram.cpp'),

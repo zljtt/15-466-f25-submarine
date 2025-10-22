@@ -9,81 +9,11 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/norm.hpp>
-
-void Player::Controls::send_controls_message(Connection *connection_) const
-{
-    assert(connection_);
-    auto &connection = *connection_;
-
-    uint32_t size = 5;
-    connection.send(Message::C2S_Controls);
-    connection.send(uint8_t(size));
-    connection.send(uint8_t(size >> 8));
-    connection.send(uint8_t(size >> 16));
-
-    auto send_button = [&](Button const &b)
-    {
-        if (b.downs & 0x80)
-        {
-            std::cerr << "Wow, you are really good at pressing buttons!" << std::endl;
-        }
-        connection.send(uint8_t((b.pressed ? 0x80 : 0x00) | (b.downs & 0x7f)));
-    };
-
-    send_button(left);
-    send_button(right);
-    send_button(up);
-    send_button(down);
-    send_button(jump);
-}
-
-bool Player::Controls::recv_controls_message(Connection *connection_)
-{
-    assert(connection_);
-    auto &connection = *connection_;
-
-    auto &recv_buffer = connection.recv_buffer;
-
-    // expecting [type, size_low0, size_mid8, size_high8]:
-    if (recv_buffer.size() < 4)
-        return false;
-    if (recv_buffer[0] != uint8_t(Message::C2S_Controls))
-        return false;
-    uint32_t size = (uint32_t(recv_buffer[3]) << 16) | (uint32_t(recv_buffer[2]) << 8) | uint32_t(recv_buffer[1]);
-    if (size != 5)
-        throw std::runtime_error("Controls message with size " + std::to_string(size) + " != 5!");
-
-    // expecting complete message:
-    if (recv_buffer.size() < 4 + size)
-        return false;
-
-    auto recv_button = [](uint8_t byte, Button *button)
-    {
-        button->pressed = (byte & 0x80);
-        uint32_t d = uint32_t(button->downs) + uint32_t(byte & 0x7f);
-        if (d > 255)
-        {
-            std::cerr << "got a whole lot of downs" << std::endl;
-            d = 255;
-        }
-        button->downs = uint8_t(d);
-    };
-
-    recv_button(recv_buffer[4 + 0], &left);
-    recv_button(recv_buffer[4 + 1], &right);
-    recv_button(recv_buffer[4 + 2], &up);
-    recv_button(recv_buffer[4 + 3], &down);
-    recv_button(recv_buffer[4 + 4], &jump);
-
-    // delete message from buffer:
-    recv_buffer.erase(recv_buffer.begin(), recv_buffer.begin() + 4 + size);
-
-    return true;
-}
+#include "AABB.hpp"
 
 //-----------------------------------------
 
-Game::Game() : mt(0x15466666), dist(1u, 0xFFFFFFFFu)
+Game::Game()
 {
 }
 
@@ -91,19 +21,7 @@ Player *Game::spawn_player()
 {
     players.emplace_back();
     Player &player = players.back();
-    player.id = dist(mt);
-    player.position.x = 0;
-    player.position.y = 0;
-    player.color = glm::normalize(player.color);
-    player.name = "Player " + std::to_string(next_player_number++);
-    player.scale = glm::vec2(1, 1);
-    do
-    {
-        player.color.r = mt() / float(mt.max());
-        player.color.g = mt() / float(mt.max());
-        player.color.b = mt() / float(mt.max());
-    } while (player.color == glm::vec3(0.0f));
-
+    player.init();
     return &player;
 }
 
@@ -111,10 +29,7 @@ NetworkObject *Game::spawn_object()
 {
     game_objects.emplace_back();
     NetworkObject &obj = game_objects.back();
-    obj.position.x = 0;
-    obj.position.y = 0;
-    obj.scale = glm::vec2(1, 1);
-    obj.id = dist(mt);
+    obj.init();
     return &obj;
 }
 
@@ -163,26 +78,40 @@ void Game::update(float elapsed)
         if (p.controls.up.pressed)
             dir.y += 1.0f;
 
+        // combine static obstacle and players, vector is better for traversing
+        std::vector<GameObject> targets;
+        targets.reserve(static_obstacles.size() + players.size() + game_objects.size());
+        targets.insert(targets.end(), static_obstacles.begin(), static_obstacles.end());
+        for (auto &obj : players)
+        {
+            if (&obj != &p)
+                targets.push_back(obj);
+        }
+        for (auto &obj : game_objects)
+        {
+            targets.push_back(obj);
+        }
+
+        // calculate collision
         if (dir != glm::vec2(0.0f))
             dir = glm::normalize(dir);
-        glm::vec2 delta = dir * 20.0f * elapsed;
-
+        glm::vec2 delta = dir * 5.0f * elapsed;
         p.position.x += delta.x;
         // if overlapping any obstacle, push out on X
         for (int pass = 0; pass < 2; ++pass)
-        { // a couple passes helps in corners
-            for (const auto &o : static_obstacles)
+        {
+            for (const auto &o : targets)
             {
-                resolveAxis(p, o, 0);
+                p.position += resolve_axis(p, o, 0);
             }
         }
 
         p.position.y += delta.y;
         for (int pass = 0; pass < 2; ++pass)
         {
-            for (const auto &o : static_obstacles)
+            for (const auto &o : targets)
             {
-                resolveAxis(p, o, 1);
+                p.position += resolve_axis(p, o, 1);
             }
         }
 
@@ -278,7 +207,7 @@ void Game::send_state_message(Connection *connection_, Player *connection_player
     connection.send_buffer[mark - 1] = uint8_t(size >> 16);
 }
 
-bool Game::recv_state_message(Connection *connection_, std::unordered_map<uint32_t, Scene::Drawable *> &drawables, Scene &scene)
+bool Game::recv_state_message(Connection *connection_, std::function<void(Player &)> on_player, std::function<void(NetworkObject &)> on_game_object)
 {
     assert(connection_);
     auto &connection = *connection_;
@@ -316,19 +245,9 @@ bool Game::recv_state_message(Connection *connection_, std::unordered_map<uint32
         // find local player
         if (i == 0)
         {
-            local_player = player.id;
+            local_player = &player;
         }
-        // create drawable if not find
-        auto obj = drawables.find(player.id);
-        auto pos = glm::vec3(player.position.x, player.position.y, 0);
-        if (obj == drawables.end())
-        {
-            drawables[player.id] = prefab_player->create_drawable(scene, pos);
-        }
-        else
-        {
-            obj->second->transform->position = pos;
-        }
+        on_player(player);
     }
 
     game_objects.clear();
@@ -339,11 +258,7 @@ bool Game::recv_state_message(Connection *connection_, std::unordered_map<uint32
         game_objects.emplace_back();
         NetworkObject &obj = game_objects.back();
         obj.receive(&at, recv_buffer);
-        // create drawable if not find
-        if (drawables.find(obj.id) == drawables.end())
-        {
-            // mode_->create_game_object(prefab_player, obj.id, glm::vec3(obj.position.x, obj.position.y, 0));
-        }
+        on_game_object(obj);
     }
 
     if (at != size)
@@ -354,54 +269,3 @@ bool Game::recv_state_message(Connection *connection_, std::unordered_map<uint32
 
     return true;
 }
-
-void NetworkObject::send(Connection *connection) const
-{
-    connection->send(id);
-    connection->send(position);
-    connection->send(velocity);
-};
-
-void NetworkObject::receive(uint32_t *at, std::vector<uint8_t> &recv_buffer)
-{
-    auto read = [&](auto *val)
-    {
-        std::memcpy(val, &recv_buffer[4 + *at], sizeof(*val));
-        *at += sizeof(*val);
-    };
-    read(&id);
-    read(&position);
-    read(&velocity);
-};
-
-void Player::send(Connection *connection) const
-{
-    NetworkObject::send(connection);
-    connection->send(color);
-
-    // NOTE: can't just 'send(name)' because player.name is not plain-old-data type.
-    // effectively: truncates player name to 255 chars
-    uint8_t len = uint8_t(std::min<size_t>(255, name.size()));
-    connection->send(len);
-    connection->send_buffer.insert(connection->send_buffer.end(), name.begin(), name.begin() + len);
-};
-
-void Player::receive(uint32_t *at, std::vector<uint8_t> &recv_buffer)
-{
-    auto read = [&](auto *val)
-    {
-        std::memcpy(val, &recv_buffer[4 + *at], sizeof(*val));
-        *at += sizeof(*val);
-    };
-    NetworkObject::receive(at, recv_buffer);
-    read(&color);
-    uint8_t name_len;
-    read(&name_len);
-    name = "";
-    for (uint8_t n = 0; n < name_len; ++n)
-    {
-        char c;
-        read(&c);
-        name += c;
-    }
-};

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Scene.hpp"
-#include "CollisionObject.hpp"
+#include "GameObject.hpp"
 
 #include <glm/glm.hpp>
 
@@ -23,61 +23,15 @@ enum class Message : uint8_t
     //...
 };
 
-// used to represent a control input:
-struct Button
-{
-    uint8_t downs = 0;    // times the button has been pressed
-    bool pressed = false; // is the button pressed now
-};
-
-struct NetworkObject : CollisionObject
-{
-    uint32_t id;
-    glm::vec2 velocity = glm::vec2(0.0f, 0.0f);
-    NetworkObject() {};
-    virtual ~NetworkObject() {};
-    virtual void send(Connection *connection) const;
-    virtual void receive(uint32_t *at, std::vector<uint8_t> &recv_buffer);
-};
-
-// state of one player in the game:
-struct Player : NetworkObject
-{
-    Player() {};
-    virtual ~Player() {};
-    // player inputs (sent from client):
-    struct Controls
-    {
-        Button left, right, up, down, jump;
-
-        void send_controls_message(Connection *connection) const;
-
-        // returns 'false' if no message or not a controls message,
-        // returns 'true' if read a controls message,
-        // throws on malformed controls message
-        bool recv_controls_message(Connection *connection);
-    } controls;
-
-    // player state (sent from server):
-    glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f);
-    std::string name = "";
-
-    void send(Connection *connection) const override;
-    void receive(uint32_t *at, std::vector<uint8_t> &recv_buffer) override;
-};
-
 struct Game
 {
     // common
-    std::list<Player> players; //(using list so they can have stable addresses)
+    std::list<Player> players;             // (using list so they can have stable addresses)
+    std::list<NetworkObject> game_objects; // the dynamic game object other than player, they also have collision box, so it need to be checked during collision
     // for local
-    uint32_t local_player;
+    Player *local_player;
     // for server
-    std::list<NetworkObject> game_objects;       // the game object, they also have collision box, so it need to be checked during collision
-    std::list<CollisionObject> static_obstacles; // the collision box should not be sync, instead generated from the scene on both server and client (if the client needs it)
-    std::mt19937 mt;                             // used for spawning players
-    std::uniform_int_distribution<uint32_t> dist;
-    uint32_t next_player_number = 1; // used for naming players
+    std::list<GameObject> static_obstacles; // the collision box should not be sync, instead generated from the scene on both server and client (if the client needs it)
 
     Player *spawn_player(); // add player the end of the players list (may also, e.g., play some spawn anim)
     NetworkObject *spawn_object();
@@ -107,7 +61,7 @@ struct Game
     // used by client:
     // set game state from data in connection buffer
     //  (return true if data was read)
-    bool recv_state_message(Connection *connection, std::unordered_map<uint32_t, Scene::Drawable *> &game_objects, Scene &scene);
+    bool recv_state_message(Connection *connection, std::function<void(Player &)> on_player, std::function<void(NetworkObject &)> on_game_object);
 
     // used by server:
     // send game state.

@@ -31,6 +31,7 @@ struct GameObject
     glm::vec2 position = glm::vec2(0.0f, 0.0f);
     glm::vec2 scale = glm::vec2(1.0f, 1.0f);
     glm::vec2 velocity = glm::vec2(0.0f, 0.0f);
+    uint8_t radar_color = 0;
 
     GameObject() {};
     GameObject(glm::vec2 pos, glm::vec2 box) : position(pos), scale(box) {};

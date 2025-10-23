@@ -37,6 +37,7 @@ void Player::init()
 {
     NetworkObject::init();
     color = glm::normalize(color);
+    radar_color = 1;
     name = "Player " + std::to_string(next_player_number++);
     do
     {
@@ -50,7 +51,7 @@ void Player::send(Connection *connection) const
 {
     NetworkObject::send(connection);
     connection->send(color);
-
+    connection->send(radar_color);
     // NOTE: can't just 'send(name)' because player.name is not plain-old-data type.
     // effectively: truncates player name to 255 chars
     uint8_t len = uint8_t(std::min<size_t>(255, name.size()));
@@ -67,6 +68,7 @@ void Player::receive(uint32_t *at, std::vector<uint8_t> &recv_buffer)
     };
     NetworkObject::receive(at, recv_buffer);
     read(&color);
+    read(&radar_color);
     uint8_t name_len;
     read(&name_len);
     name = "";

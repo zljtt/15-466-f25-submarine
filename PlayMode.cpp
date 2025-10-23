@@ -28,15 +28,15 @@ Load<Scene> prototype_scene(LoadTagDefault, []() -> Scene const *
     auto on_drawable = [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name) {
         if (mesh_name == "Player") return;
 
-        Mesh const &mesh = prototype_scene_meshes->lookup(mesh_name);
-        scene.drawables.emplace_back(transform);
-        Scene::Drawable &drawable = scene.drawables.back();
+        // Mesh const &mesh = prototype_scene_meshes->lookup(mesh_name);
+        // scene.drawables.emplace_back(transform);
+        // Scene::Drawable &drawable = scene.drawables.back();
 
-        drawable.pipeline = lit_color_texture_program_pipeline;
-        drawable.pipeline.vao = meshes_for_lit_color_texture_program;
-        drawable.pipeline.type = mesh.type;
-        drawable.pipeline.start = mesh.start;
-        drawable.pipeline.count = mesh.count;
+        // drawable.pipeline = lit_color_texture_program_pipeline;
+        // drawable.pipeline.vao = meshes_for_lit_color_texture_program;
+        // drawable.pipeline.type = mesh.type;
+        // drawable.pipeline.start = mesh.start;
+        // drawable.pipeline.count = mesh.count;
         
         scene.static_obstacles.emplace_back(transform->position, transform->scale);
     };
@@ -283,11 +283,16 @@ void PlayMode::draw_overlay(glm::uvec2 const &drawable_size)
     glm::mat4 P = glm::perspective(camera->fovy, aspect, 0.1f, 1000.0f);
     DrawLines hud(P * V);
 
-    auto draw_dot = [&](glm::vec3 p)
+    auto draw_dot = [&](glm::vec3 p, RaycastResult hit)
     {
         float s = 0.1f;
-        hud.draw(p + glm::vec3(-s, 0, 0), p + glm::vec3(s, 0, 0));
-        hud.draw(p + glm::vec3(0, -s, 0), p + glm::vec3(0, s, 0));
+        glm::u8vec4 color = {255, 255, 255, 255};
+        if (hit.obj->radar_color == 1)
+        {
+            color = {255, 0, 0, 255};
+        }
+        hud.draw(p + glm::vec3(-s, 0, 0), p + glm::vec3(s, 0, 0), color);
+        hud.draw(p + glm::vec3(0, -s, 0), p + glm::vec3(0, s, 0), color);
     };
 
     // glm::vec2 player_pos = local_player_pos();
@@ -297,7 +302,7 @@ void PlayMode::draw_overlay(glm::uvec2 const &drawable_size)
     for (const auto &h : hits)
     {
         glm::vec3 hitP = {h.point.x, h.point.y, 0};
-        draw_dot(hitP);
+        draw_dot(hitP, h);
         // hud.draw(hitP, {player_pos, 0});
     }
     // hud.draw(player_pos, glm::vec3(0, 0, 0));

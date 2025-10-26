@@ -28,15 +28,15 @@ Load<Scene> prototype_scene(LoadTagDefault, []() -> Scene const *
     auto on_drawable = [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name) {
         if (mesh_name == "Player") return;
 
-        // Mesh const &mesh = prototype_scene_meshes->lookup(mesh_name);
-        // scene.drawables.emplace_back(transform);
-        // Scene::Drawable &drawable = scene.drawables.back();
+        Mesh const &mesh = prototype_scene_meshes->lookup(mesh_name);
+        scene.drawables.emplace_back(transform);
+        Scene::Drawable &drawable = scene.drawables.back();
 
-        // drawable.pipeline = lit_color_texture_program_pipeline;
-        // drawable.pipeline.vao = meshes_for_lit_color_texture_program;
-        // drawable.pipeline.type = mesh.type;
-        // drawable.pipeline.start = mesh.start;
-        // drawable.pipeline.count = mesh.count;
+        drawable.pipeline = lit_color_texture_program_pipeline;
+        drawable.pipeline.vao = meshes_for_lit_color_texture_program;
+        drawable.pipeline.type = mesh.type;
+        drawable.pipeline.start = mesh.start;
+        drawable.pipeline.count = mesh.count;
         
         scene.static_obstacles.emplace_back(transform->position, transform->scale);
     };
@@ -249,22 +249,54 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
     // update camera aspect ratio for drawable:
     camera->aspect = float(drawable_size.x) / float(drawable_size.y);
 
-    // set up light type and position for lit_color_texture_program:
-    glUseProgram(lit_color_texture_program->program);
-    glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 1);
-    glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f, -1.0f)));
-    glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(glm::vec3(1.0f, 1.0f, 0.95f)));
-    glUseProgram(0);
+    glm::vec2 player_pos = local_player_pos();
+    float depth = glm::max(0.0f, water_surface_y - player_pos.y);
+    float atten = glm::clamp(1.0f - atten_speed * depth, 0.0f, 1.0f);
 
-    glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClearDepth(1.0f); // 1.0 is actually the default value to clear the depth buffer to, but FYI you can change it.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS); // this is the default depth comparison function, but FYI you can change it.
+	glDepthMask(GL_TRUE);
+	glDepthFunc(GL_LESS);
 
-    scene.draw(*camera);
+    //environment light
+    {
+        glm::vec3 hemi_light_dir(0.0f, 0.0f, -1.0f);
+        glm::vec3 surface_light_energy(1.0f, 1.0f, 0.95f);
+        glm::vec3 underwater_light_energy = surface_light_energy * atten;
+        
+        glUseProgram(lit_color_texture_program->program);
+        glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 1);
+        glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(hemi_light_dir));
+        glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(underwater_light_energy));
+        glUseProgram(0);
 
+        scene.draw(*camera);
+    }
+
+    //player point light
+    {
+        glEnable(GL_BLEND);
+	    glBlendFunc(GL_ONE, GL_ONE);
+	    glDepthFunc(GL_EQUAL);
+
+        glm::vec3 point_light_pos(player_pos.x, player_pos.y, 2.0f);
+        glm::vec3 point_light_energy(0.1f, 0.1f, 0.1f);
+        // glm::vec3 point_light_energy(0.0f, 0.0f, 0.0f);
+
+        glUseProgram(lit_color_texture_program->program);
+        glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 0);
+        glUniform3fv(lit_color_texture_program->LIGHT_LOCATION_vec3, 1, glm::value_ptr(point_light_pos));
+        glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(point_light_energy));
+        glUseProgram(0);
+
+        scene.draw(*camera);
+
+        glDisable(GL_BLEND);
+    }
+    
     GL_ERRORS();
 
     draw_overlay(drawable_size);

@@ -16,6 +16,10 @@ Load<MeshBuffer> prototype_prefab_meshes(LoadTagDefault, []() -> MeshBuffer cons
 
 Load<Prefab> prefab_player(LoadTagLate, []() -> Prefab const *
                            { return new Prefab("Player"); });
+                      
+Load<Prefab> prefab_torpedo(LoadTagLate, []() -> Prefab const *
+                           { return new Prefab("Torpedo"); });
+
 
 Scene::Drawable *Prefab::create_drawable(Scene &scene, glm::vec3 pos, glm::vec3 scale, glm::quat rotation) const
 {

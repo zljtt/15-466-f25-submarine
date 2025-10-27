@@ -18,6 +18,7 @@
 #include <array>
 
 extern Load<Prefab> prefab_player;
+extern Load<Prefab> prefab_torpedo;
 
 struct PlayMode : Mode
 {

@@ -25,6 +25,14 @@ Player *Game::spawn_player()
     return &player;
 }
 
+Torpedo *Game::spawn_torpedo()
+{
+    torpedoes.emplace_back();
+    Torpedo &torpedo = torpedoes.back();
+    torpedo.init();
+    return &torpedo;
+}
+
 NetworkObject *Game::spawn_object()
 {
     game_objects.emplace_back();
@@ -41,6 +49,21 @@ void Game::remove_player(Player *player)
         if (&*pi == player)
         {
             players.erase(pi);
+            found = true;
+            break;
+        }
+    }
+    assert(found);
+}
+
+void Game::remove_torpedo(Torpedo *torpedo)
+{
+    bool found = false;
+    for (auto ti = torpedoes.begin(); ti != torpedoes.end(); ++ti)
+    {
+        if (&*ti == torpedo)
+        {
+            torpedoes.erase(ti);
             found = true;
             break;
         }
@@ -77,6 +100,13 @@ void Game::update(float elapsed)
             dir.y -= 1.0f;
         if (p.controls.up.pressed)
             dir.y += 1.0f;
+        
+        // spawn a torpedo 
+        if (p.controls.jump.pressed){
+            Torpedo *torp = spawn_torpedo();
+            torp->position = p.position + glm::normalize(dir) * 5.0f;
+            torp->velocity = glm::normalize(dir) *10.0f;
+        }
 
         // combine static obstacle and players, vector is better for traversing
         std::vector<GameObject> targets;
@@ -193,6 +223,14 @@ void Game::send_state_message(Connection *connection_, Player *connection_player
         player.send(&connection);
     }
 
+    //send torpedoes
+    connection.send(uint8_t(torpedoes.size()));
+    for (auto const &torpedo : torpedoes)
+    {
+        torpedo.send(&connection);
+    }
+
+
     // send game objects
     connection.send(uint8_t(game_objects.size()));
     for (auto const &obj : game_objects)
@@ -207,7 +245,10 @@ void Game::send_state_message(Connection *connection_, Player *connection_player
     connection.send_buffer[mark - 1] = uint8_t(size >> 16);
 }
 
-bool Game::recv_state_message(Connection *connection_, std::function<void(Player &)> on_player, std::function<void(NetworkObject &)> on_game_object)
+bool Game::recv_state_message(Connection *connection_, 
+    std::function<void(Player &)> on_player, 
+    std::function<void(NetworkObject &)> on_game_object, 
+    std::function<void(Torpedo &)> on_torpedo)
 {
     assert(connection_);
     auto &connection = *connection_;
@@ -250,19 +291,35 @@ bool Game::recv_state_message(Connection *connection_, std::function<void(Player
         on_player(player);
     }
 
+    torpedoes.clear();
+    uint8_t torpedoes_count;
+    read(&torpedoes_count);
+    for (uint8_t i = 0; i < torpedoes_count; ++i)
+    {
+        torpedoes.emplace_back();
+        Torpedo &torpedo= torpedoes.back();
+        torpedo.receive(&at, recv_buffer);
+        on_torpedo(torpedo);
+    }
+
     game_objects.clear();
     uint8_t object_count;
     read(&object_count);
     for (uint8_t i = 0; i < object_count; ++i)
     {
+       
         game_objects.emplace_back();
         NetworkObject &obj = game_objects.back();
         obj.receive(&at, recv_buffer);
         on_game_object(obj);
     }
 
-    if (at != size)
+
+    if (at != size){
+        std::cout<<"at:"<<at<<" size:"<<size<<" torpedo count "<<torpedoes_count<<" huh"<<std::endl;
         throw std::runtime_error("Trailing data in state message.");
+    }
+        
 
     // delete message from buffer:
     recv_buffer.erase(recv_buffer.begin(), recv_buffer.begin() + 4 + size);

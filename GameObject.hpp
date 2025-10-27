@@ -93,3 +93,20 @@ struct Player : NetworkObject
     virtual void send(Connection *connection) const override;
     virtual void receive(uint32_t *at, std::vector<uint8_t> &recv_buffer) override;
 };
+
+
+struct Torpedo : NetworkObject
+{
+    Torpedo() {};
+    virtual ~Torpedo() {};
+    //time till torpedo explode on its own
+    float lifetime = 10.0f;
+
+    // Torpedo states
+    bool tracking;//if the torpedo could detect other submarines, switch to true
+    float age;
+
+    virtual void init() override;
+    virtual void send(Connection *connection) const override;
+    virtual void receive(uint32_t *at, std::vector<uint8_t> &recv_buffer) override;
+};

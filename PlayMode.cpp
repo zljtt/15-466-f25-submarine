@@ -27,7 +27,7 @@ Load<Scene> prototype_scene(LoadTagDefault, []() -> Scene const *
                             { 
     auto on_drawable = [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name) {
         if (mesh_name == "Player") return;
-
+        if (mesh_name == "Torpedo") return;
         Mesh const &mesh = prototype_scene_meshes->lookup(mesh_name);
         scene.drawables.emplace_back(transform);
         Scene::Drawable &drawable = scene.drawables.back();
@@ -179,6 +179,7 @@ void PlayMode::update_connection(float elapsed)
             drawable->second->transform->scale = glm::vec3(player.scale, 1);
         }
     };
+    
 
     auto on_game_object = [&](NetworkObject &obj)
     {
@@ -187,7 +188,7 @@ void PlayMode::update_connection(float elapsed)
         if (drawable == network_drawables.end())
         {
             // TODO: create drawable according to the object type
-        }
+        } 
         // update drawable position
         else
         {
@@ -195,8 +196,25 @@ void PlayMode::update_connection(float elapsed)
             drawable->second->transform->scale = glm::vec3(obj.scale, 1);
         }
     };
+
+    auto on_torpedo = [&](Torpedo &torpedo)
+    {
+        std::cout<<"read a torpedo"<<std::endl;
+        auto drawable = network_drawables.find(torpedo.id);
+        // create drawable if not exit on client
+        if (drawable == network_drawables.end())
+        {
+            network_drawables[torpedo.id] = prefab_torpedo->create_drawable(scene, glm::vec3(torpedo.position, 0));
+        }
+        // update drawable position
+        else
+        {
+            drawable->second->transform->position = glm::vec3(torpedo.position, 0);
+            drawable->second->transform->scale = glm::vec3(torpedo.scale, 1);
+        }
+    };
     // send/receive data:
-    client.poll([this, on_player, on_game_object](Connection *c, Connection::Event event)
+    client.poll([this, on_player, on_game_object, on_torpedo](Connection *c, Connection::Event event)
                 {
 		if (event == Connection::OnOpen) {
 			std::cout << "[" << c->socket << "] opened" << std::endl;
@@ -209,7 +227,7 @@ void PlayMode::update_connection(float elapsed)
 			try {
 				do {
 					handled_message = false;
-					if (game.recv_state_message(c, on_player, on_game_object)) handled_message = true;
+					if (game.recv_state_message(c, on_player, on_game_object, on_torpedo)) handled_message = true;
 				} while (handled_message);
 			} catch (std::exception const &e) {
 				std::cerr << "[" << c->socket << "] malformed message from server: " << e.what() << std::endl;

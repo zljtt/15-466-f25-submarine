@@ -80,6 +80,33 @@ void Player::receive(uint32_t *at, std::vector<uint8_t> &recv_buffer)
     }
 };
 
+
+void Torpedo::init()
+{
+    NetworkObject::init();
+    tracking = false;
+    age = 0;
+}
+
+void Torpedo::send(Connection *connection) const
+{
+    NetworkObject::send(connection);
+    connection->send(tracking);
+    connection->send(age);
+};
+
+void Torpedo::receive(uint32_t *at, std::vector<uint8_t> &recv_buffer)
+{
+    auto read = [&](auto *val)
+    {
+        std::memcpy(val, &recv_buffer[4 + *at], sizeof(*val));
+        *at += sizeof(*val);
+    };
+    NetworkObject::receive(at, recv_buffer);
+    read(&tracking);
+    read(&age);
+};
+
 void Player::Controls::send_controls_message(Connection *connection_) const
 {
     assert(connection_);

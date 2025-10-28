@@ -84,10 +84,15 @@ struct Player : NetworkObject
         // throws on malformed controls message
         bool recv_controls_message(Connection *connection);
     } controls;
+    
+    //constants
+    float torpCD = 5.0f;
+
 
     // player state (sent from server):
     glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f);
     std::string name = "";
+    float torpWait = 6.0f;//arbitrary number that's bigger than 5
 
     virtual void init() override;
     virtual void send(Connection *connection) const override;
@@ -100,7 +105,7 @@ struct Torpedo : NetworkObject
     Torpedo() {};
     virtual ~Torpedo() {};
     //time till torpedo explode on its own
-    float lifetime = 10.0f;
+    float lifetime = 1.0f;
 
     // Torpedo states
     bool tracking;//if the torpedo could detect other submarines, switch to true

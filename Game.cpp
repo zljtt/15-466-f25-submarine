@@ -100,13 +100,28 @@ void Game::update(float elapsed)
             dir.y -= 1.0f;
         if (p.controls.up.pressed)
             dir.y += 1.0f;
+
         
         // spawn a torpedo 
-        if (p.controls.jump.pressed){
+        if (p.controls.jump.pressed && p.torpWait > p.torpCD){
+            std::cout<<"from player: "<<p.id<<"wait time is"<<p.torpWait<<std::endl;
             Torpedo *torp = spawn_torpedo();
             torp->position = p.position + glm::normalize(dir) * 5.0f;
             torp->velocity = glm::normalize(dir) *10.0f;
+            p.torpWait = 0.0f;
         }
+        else{
+            p.torpWait += elapsed;
+        }
+
+        //loop through the torpedoes to determine which ones has reached its time
+        for(Torpedo &torp : torpedoes){
+            torp.age+=elapsed;
+            if(torp.age>torp.lifetime){
+                remove_torpedo(&torp);
+            }
+        }
+
 
         // combine static obstacle and players, vector is better for traversing
         std::vector<GameObject> targets;
@@ -248,7 +263,8 @@ void Game::send_state_message(Connection *connection_, Player *connection_player
 bool Game::recv_state_message(Connection *connection_, 
     std::function<void(Player &)> on_player, 
     std::function<void(NetworkObject &)> on_game_object, 
-    std::function<void(Torpedo &)> on_torpedo)
+    std::function<void(Torpedo &)> on_torpedo,
+    std::function<void()> on_torpedo_destroy)
 {
     assert(connection_);
     auto &connection = *connection_;
@@ -292,7 +308,7 @@ bool Game::recv_state_message(Connection *connection_,
     }
 
     torpedoes.clear();
-    uint8_t torpedoes_count;
+    uint8_t tempTorp_count = torpedoes_count;
     read(&torpedoes_count);
     for (uint8_t i = 0; i < torpedoes_count; ++i)
     {
@@ -300,6 +316,10 @@ bool Game::recv_state_message(Connection *connection_,
         Torpedo &torpedo= torpedoes.back();
         torpedo.receive(&at, recv_buffer);
         on_torpedo(torpedo);
+    }
+    if(tempTorp_count > torpedoes_count){
+        std::cout<<"torpedoes destroyed"<<std::endl;
+        on_torpedo_destroy();
     }
 
     game_objects.clear();

@@ -38,6 +38,7 @@ struct PlayMode : Mode
     Scene::Camera *camera = nullptr;
     Scene scene;
     std::unordered_map<uint32_t, Scene::Drawable *> network_drawables;
+    std::unordered_map<uint32_t, Scene::Drawable *> torpedo_drawables;
     Radar radar;
     float radar_timer;
 

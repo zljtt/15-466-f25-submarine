@@ -84,6 +84,7 @@ void Player::receive(uint32_t *at, std::vector<uint8_t> &recv_buffer)
 void Torpedo::init()
 {
     NetworkObject::init();
+    scale = glm::vec2(0.5f,0.5f);
     tracking = false;
     age = 0;
 }

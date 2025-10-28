@@ -199,12 +199,12 @@ void PlayMode::update_connection(float elapsed)
 
     auto on_torpedo = [&](Torpedo &torpedo)
     {
-        std::cout<<"read a torpedo"<<std::endl;
-        auto drawable = network_drawables.find(torpedo.id);
+
+        auto drawable = torpedo_drawables.find(torpedo.id);
         // create drawable if not exit on client
-        if (drawable == network_drawables.end())
+        if (drawable == torpedo_drawables.end())
         {
-            network_drawables[torpedo.id] = prefab_torpedo->create_drawable(scene, glm::vec3(torpedo.position, 0));
+            torpedo_drawables[torpedo.id] = prefab_torpedo->create_drawable(scene, glm::vec3(torpedo.position, 0));
         }
         // update drawable position
         else
@@ -213,8 +213,44 @@ void PlayMode::update_connection(float elapsed)
             drawable->second->transform->scale = glm::vec3(torpedo.scale, 1);
         }
     };
+
+    //only go through the game torpedoes to redraw the torpedoes when you have to(when torpedoes are destroyed)
+    auto on_torpedo_destroy = [&]()
+    {
+        //go through the existing torpedo drawables to see what to delete
+        for(auto torp : torpedo_drawables){
+            uint32_t tid = torp.first;
+            bool found = false;
+            for(Torpedo &t : game.torpedoes){
+                if(tid == t.id){
+                    found = true;
+                    break;
+                }
+            }
+            //if the current drawable should be destroyed, destroy it
+            if(!found){
+                std::cout<<"a torpedo should be destroyed"<<std::endl;
+                // scene.drawables.remove_if([&](Scene::Drawable t){ 
+                //     if(&t == torp.second) std::cout<<"it's getting removed"<<std::endl;
+                //     return &t == torp.second;
+                // });    
+
+                for(auto tit = scene.drawables.begin(); tit != scene.drawables.end();){
+                    if(&(*tit) == torp.second){
+                        std::cout<<"it's getting removed"<<std::endl;
+                        scene.drawables.erase(tit);
+                        break;
+                    }
+                    else{
+                        tit++;
+                    }
+                }
+            }
+        }     
+    };
+
     // send/receive data:
-    client.poll([this, on_player, on_game_object, on_torpedo](Connection *c, Connection::Event event)
+    client.poll([this, on_player, on_game_object, on_torpedo, on_torpedo_destroy](Connection *c, Connection::Event event)
                 {
 		if (event == Connection::OnOpen) {
 			std::cout << "[" << c->socket << "] opened" << std::endl;
@@ -227,7 +263,7 @@ void PlayMode::update_connection(float elapsed)
 			try {
 				do {
 					handled_message = false;
-					if (game.recv_state_message(c, on_player, on_game_object, on_torpedo)) handled_message = true;
+					if (game.recv_state_message(c, on_player, on_game_object, on_torpedo,on_torpedo_destroy)) handled_message = true;
 				} while (handled_message);
 			} catch (std::exception const &e) {
 				std::cerr << "[" << c->socket << "] malformed message from server: " << e.what() << std::endl;

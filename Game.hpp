@@ -28,6 +28,7 @@ struct Game
     // common
     std::list<Player> players;             // (using list so they can have stable addresses)
     std::list<Torpedo> torpedoes; 
+    uint8_t torpedoes_count;               // used for tracking destruction of torpedoes
     std::list<NetworkObject> game_objects; // the dynamic game object other than player, they also have collision box, so it need to be checked during collision
     // for local
     Player *local_player;
@@ -64,7 +65,9 @@ struct Game
     // used by client:
     // set game state from data in connection buffer
     //  (return true if data was read)
-    bool recv_state_message(Connection *connection, std::function<void(Player &)> on_player, std::function<void(NetworkObject &)> on_game_object, std::function<void(Torpedo &)> on_torpedo);
+    bool recv_state_message(Connection *connection, std::function<void(Player &)> on_player, std::function<void(NetworkObject &)> on_game_object, 
+    std::function<void(Torpedo &)> on_torpedo,
+    std::function<void()> on_torpedo_destroy);
 
     // used by server:
     // send game state.

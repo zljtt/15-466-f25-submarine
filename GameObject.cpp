@@ -36,6 +36,7 @@ void NetworkObject::receive(uint32_t *at, std::vector<uint8_t> &recv_buffer)
 void Player::init()
 {
     NetworkObject::init();
+    position = glm::vec3{148, 70, 0};
     color = glm::normalize(color);
     radar_color = 1;
     name = "Player " + std::to_string(next_player_number++);
@@ -80,11 +81,10 @@ void Player::receive(uint32_t *at, std::vector<uint8_t> &recv_buffer)
     }
 };
 
-
 void Torpedo::init()
 {
     NetworkObject::init();
-    scale = glm::vec2(0.5f,0.5f);
+    scale = glm::vec2(0.5f, 0.5f);
     tracking = false;
     age = 0;
 }

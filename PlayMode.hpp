@@ -58,9 +58,8 @@ struct PlayMode : Mode
     void draw_overlay(glm::uvec2 const &drawable_size);
     glm::vec2 local_player_pos();
 
-    float water_surface_y = 200.0f;
-    float atten_speed = 0.005f;
-    
+    float water_surface_y = 150.0f;
+    float atten_speed = 0.010f;
 };
 
 extern GLuint meshes_for_lit_color_texture_program;

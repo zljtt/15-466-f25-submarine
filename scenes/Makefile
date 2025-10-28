@@ -1,4 +1,4 @@
-.PHONY : all
+.PHONY : all clean
 
 #n.b. the '-y' sets autoexec scripts to 'on' so that driver expressions will work
 UNAME_S := $(shell uname -s)
@@ -21,11 +21,17 @@ all : \
 	$(DIST)/prototype_scene.pnct \
 	$(DIST)/prototype.scene \
 
-$(DIST)/prototype_prefab.pnct : prototype.blend $(EXPORT_PREFAB_MESHES)
+$(DIST)/prototype_prefab.pnct : prototype_map.blend $(EXPORT_PREFAB_MESHES)
 	$(BLENDER) --background --python $(EXPORT_PREFAB_MESHES) -- '$<':Prefab '$@'
 
-$(DIST)/prototype_scene.pnct : prototype.blend $(EXPORT_SCENE_MESHES)
+$(DIST)/prototype_scene.pnct : prototype_map.blend $(EXPORT_SCENE_MESHES)
 	$(BLENDER) --background --python $(EXPORT_SCENE_MESHES) -- '$<':Scene '$@'
 
-$(DIST)/prototype.scene : prototype.blend $(EXPORT_SCENE)
+$(DIST)/prototype.scene : prototype_map.blend $(EXPORT_SCENE)
 	$(BLENDER) --background --python $(EXPORT_SCENE) -- '$<':Scene '$@'
+
+clean :
+	rm -f \
+	$(DIST)/prototype_prefab.pnct \
+	$(DIST)/prototype_scene.pnct \
+	$(DIST)/prototype.scene

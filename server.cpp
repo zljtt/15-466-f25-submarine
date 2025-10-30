@@ -4,6 +4,7 @@
 #include "hex_dump.hpp"
 
 #include "Game.hpp"
+#include "GameObject.hpp"
 
 #include <chrono>
 #include <stdexcept>
@@ -84,7 +85,8 @@ int main(int argc, char **argv)
                 {
                     auto f = connection_to_player.find(c);
                     assert(f != connection_to_player.end());
-                    game.remove_player(f->second);
+                    f->second->deleted = true;
+                    // game.remove_object(f->second->id);
                     connection_to_player.erase(f);
                 };
 
@@ -94,7 +96,7 @@ int main(int argc, char **argv)
 					//client connected:
 
 					//create some player info for them:
-					connection_to_player.emplace(c, game.spawn_player());
+					connection_to_player.emplace(c, game.spawn_object<Player>());
 
 				} else if (evt == Connection::OnClose) {
 					//client disconnected:
@@ -134,6 +136,11 @@ int main(int argc, char **argv)
             {
                 game.send_state_message(c, player);
             }
+            game.game_objects.erase(
+                std::remove_if(game.game_objects.begin(), game.game_objects.end(),
+                               [](auto &obj)
+                               { return obj->deleted; }),
+                game.game_objects.end());
         }
 
         return 0;

@@ -3,7 +3,6 @@
 #include "Mode.hpp"
 
 #include "Connection.hpp"
-#include "Game.hpp"
 #include "Mesh.hpp"
 #include "Scene.hpp"
 #include "Prefab.hpp"
@@ -36,17 +35,18 @@ struct PlayMode : Mode
 
     //----- client game state -----
     Scene::Camera *camera = nullptr;
-    Scene scene;
     std::unordered_map<uint32_t, Scene::Drawable *> network_drawables;
-    std::unordered_map<uint32_t, Scene::Drawable *> torpedo_drawables;
+    Scene scene;
+
+    NetworkObject *local_player;
+    std::list<GameObject> local_obstacles;
+    std::list<NetworkObject> network_objects;
+
     Radar radar;
     float radar_timer;
 
     // input tracking for local player:
     Player::Controls controls;
-
-    // latest game state (from server):
-    Game game;
 
     // last message from server:
     std::string server_message;
@@ -60,6 +60,11 @@ struct PlayMode : Mode
 
     float water_surface_y = 150.0f;
     float atten_speed = 0.010f;
+
+    // used by client:
+    // set game state from data in connection buffer
+    //  (return true if data was read)
+    bool recv_state_message(Connection *connection);
 };
 
 extern GLuint meshes_for_lit_color_texture_program;

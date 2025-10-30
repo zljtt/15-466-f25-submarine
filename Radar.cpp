@@ -1,8 +1,9 @@
 #include "Radar.hpp"
+#include "PlayMode.hpp"
 
-void Radar::scan(Player const *local_player, float range, int count)
+void Radar::scan(GameObject const *origin, float range, int count)
 {
-    raycast_surrounding(local_player->position, range, count, last_radar_hits);
+    raycast_surrounding(origin->position, range, count, last_radar_hits);
 };
 
 void Radar::raycast_surrounding(const glm::vec2 origin, float range, int count, std::vector<RaycastResult> &out)
@@ -24,19 +25,23 @@ void Radar::raycast_surrounding(const glm::vec2 origin, float range, int count, 
 RaycastResult Radar::raycast_direction(const glm::vec2 origin, glm::vec2 direction, float range)
 {
     RaycastResult closest;
-    // generate a combined vector
-    std::vector<GameObject *> targets;
-    targets.reserve(obstacles.size() + additional.size());
-    targets.insert(targets.end(), obstacles.begin(), obstacles.end());
-    for (auto &obj : additional)
-    {
-        targets.push_back(&obj);
-    }
 
-    for (const auto &o : targets)
+    for (const auto &o : client_game->local_obstacles)
     {
         RaycastResult h;
-        if (raycastAABB(origin, direction, *o, range, h))
+        if (raycastAABB(origin, direction, o, range, h))
+        {
+            if (h.t < closest.t)
+                closest = h;
+        }
+    }
+
+    for (const auto &o : client_game->network_objects)
+    {
+        if (o.id == client_game->local_player->id)
+            continue;
+        RaycastResult h;
+        if (raycastAABB(origin, direction, o, range, h))
         {
             if (h.t < closest.t)
                 closest = h;

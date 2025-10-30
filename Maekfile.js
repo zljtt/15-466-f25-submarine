@@ -180,6 +180,8 @@ const common_names = [
     maek.CPP('GameObject.cpp'),
     maek.CPP('Radar.cpp'),
     maek.CPP('PlayMode.cpp'),
+    maek.CPP('Player.cpp'),
+    maek.CPP('Torpedo.cpp'),
     maek.CPP('Prefab.cpp'),
     maek.CPP('LitColorTextureProgram.cpp'),
 

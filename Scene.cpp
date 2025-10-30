@@ -427,10 +427,4 @@ void Scene::set(Scene const &other, std::unordered_map<Transform const *, Transf
     {
         l.transform = transform_to_transform.at(l.transform);
     }
-
-    static_obstacles = other.static_obstacles;
-    // for (auto &o : static_obstacles)
-    // {
-    //     o.position = transform_to_transform.at(l.transform);
-    // }
 }

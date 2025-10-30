@@ -6,6 +6,8 @@
 #include "hex_dump.hpp"
 #include "Mesh.hpp"
 #include "Load.hpp"
+#include "Prefab.hpp"
+
 #include "LitColorTextureProgram.hpp"
 
 #include <glm/gtc/type_ptr.hpp>
@@ -37,19 +39,22 @@ Load<Scene> prototype_scene(LoadTagDefault, []() -> Scene const *
         drawable.pipeline.type = mesh.type;
         drawable.pipeline.start = mesh.start;
         drawable.pipeline.count = mesh.count;
-        
-        scene.static_obstacles.emplace_back(transform->position, transform->scale);
     };
     return new Scene(data_path("prototype.scene"), on_drawable); });
 
-PlayMode::PlayMode(Client &client_) : scene(*prototype_scene), client(client_)
+PlayMode::PlayMode(Client &client_) : scene(*prototype_scene), radar(this), client(client_)
 {
     // get pointer to camera for convenience:
     if (scene.cameras.size() != 1)
         throw std::runtime_error("Expecting scene to have exactly one camera, but it has " + std::to_string(scene.cameras.size()));
     camera = &scene.cameras.front();
-    // put static obstacles
-    radar.put_obstacles(scene.static_obstacles);
+
+    auto on_drawable = [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name)
+    {
+        // create collision box
+        local_obstacles.emplace_back(transform->position, transform->scale);
+    };
+    Scene(data_path("prototype.scene"), on_drawable);
 }
 
 PlayMode::~PlayMode()
@@ -164,93 +169,8 @@ void PlayMode::update_control(float elapsed)
 
 void PlayMode::update_connection(float elapsed)
 {
-    auto on_player = [&](Player &player)
-    {
-        auto drawable = network_drawables.find(player.id);
-        // create drawable if not exit on client
-        if (drawable == network_drawables.end())
-        {
-            network_drawables[player.id] = prefab_player->create_drawable(scene, glm::vec3(player.position, 0));
-        }
-        // update drawable position
-        else
-        {
-            drawable->second->transform->position = glm::vec3(player.position, 0);
-            drawable->second->transform->scale = glm::vec3(player.scale, 1);
-        }
-    };
-    
-
-    auto on_game_object = [&](NetworkObject &obj)
-    {
-        auto drawable = network_drawables.find(obj.id);
-        // create drawable if not exit on client
-        if (drawable == network_drawables.end())
-        {
-            // TODO: create drawable according to the object type
-        } 
-        // update drawable position
-        else
-        {
-            drawable->second->transform->position = glm::vec3(obj.position, 0);
-            drawable->second->transform->scale = glm::vec3(obj.scale, 1);
-        }
-    };
-
-    auto on_torpedo = [&](Torpedo &torpedo)
-    {
-
-        auto drawable = torpedo_drawables.find(torpedo.id);
-        // create drawable if not exit on client
-        if (drawable == torpedo_drawables.end())
-        {
-            torpedo_drawables[torpedo.id] = prefab_torpedo->create_drawable(scene, glm::vec3(torpedo.position, 0));
-        }
-        // update drawable position
-        else
-        {
-            drawable->second->transform->position = glm::vec3(torpedo.position, 0);
-            drawable->second->transform->scale = glm::vec3(torpedo.scale, 1);
-        }
-    };
-
-    //only go through the game torpedoes to redraw the torpedoes when you have to(when torpedoes are destroyed)
-    auto on_torpedo_destroy = [&]()
-    {
-        //go through the existing torpedo drawables to see what to delete
-        for(auto torp : torpedo_drawables){
-            uint32_t tid = torp.first;
-            bool found = false;
-            for(Torpedo &t : game.torpedoes){
-                if(tid == t.id){
-                    found = true;
-                    break;
-                }
-            }
-            //if the current drawable should be destroyed, destroy it
-            if(!found){
-                std::cout<<"a torpedo should be destroyed"<<std::endl;
-                // scene.drawables.remove_if([&](Scene::Drawable t){ 
-                //     if(&t == torp.second) std::cout<<"it's getting removed"<<std::endl;
-                //     return &t == torp.second;
-                // });    
-
-                for(auto tit = scene.drawables.begin(); tit != scene.drawables.end();){
-                    if(&(*tit) == torp.second){
-                        std::cout<<"it's getting removed"<<std::endl;
-                        scene.drawables.erase(tit);
-                        break;
-                    }
-                    else{
-                        tit++;
-                    }
-                }
-            }
-        }     
-    };
-
     // send/receive data:
-    client.poll([this, on_player, on_game_object, on_torpedo, on_torpedo_destroy](Connection *c, Connection::Event event)
+    client.poll([this](Connection *c, Connection::Event event)
                 {
 		if (event == Connection::OnOpen) {
 			std::cout << "[" << c->socket << "] opened" << std::endl;
@@ -263,7 +183,7 @@ void PlayMode::update_connection(float elapsed)
 			try {
 				do {
 					handled_message = false;
-					if (game.recv_state_message(c, on_player, on_game_object, on_torpedo,on_torpedo_destroy)) handled_message = true;
+					if (recv_state_message(c)) handled_message = true;
 				} while (handled_message);
 			} catch (std::exception const &e) {
 				std::cerr << "[" << c->socket << "] malformed message from server: " << e.what() << std::endl;
@@ -279,22 +199,13 @@ void PlayMode::update_radar(float elapsed)
     if (radar_timer < 0)
     {
         radar_timer = Radar::RADAR_INTERVAL;
-        // copy player and dynamic object to additional
-        std::list<GameObject> additional;
-        for (auto &p : game.players)
-        {
-            if (&p != game.local_player)
-                additional.push_back(p);
-        }
-        additional.insert(additional.end(), game.game_objects.begin(), game.game_objects.end());
-        radar.additional = additional;
-        radar.scan(game.local_player, Radar::RADAR_RANGE, Radar::RADAR_RAY_COUNT);
+        radar.scan(local_player, Radar::RADAR_RANGE, Radar::RADAR_RAY_COUNT);
     }
 }
 
 void PlayMode::update_camera(float elapsed)
 {
-    glm::vec2 local_pos = network_drawables[game.local_player->id]->transform->position;
+    glm::vec2 local_pos = network_drawables[local_player->id]->transform->position;
     camera->transform->position = glm::vec3(local_pos.x, local_pos.y, camera->transform->position.z);
 }
 
@@ -312,15 +223,15 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glEnable(GL_DEPTH_TEST);
-	glDepthMask(GL_TRUE);
-	glDepthFunc(GL_LESS);
+    glDepthMask(GL_TRUE);
+    glDepthFunc(GL_LESS);
 
-    //environment light
+    // environment light
     {
         glm::vec3 hemi_light_dir(0.0f, 0.0f, -1.0f);
         glm::vec3 surface_light_energy(1.0f, 1.0f, 0.95f);
         glm::vec3 underwater_light_energy = surface_light_energy * atten;
-        
+
         glUseProgram(lit_color_texture_program->program);
         glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 1);
         glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(hemi_light_dir));
@@ -330,11 +241,11 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
         scene.draw(*camera);
     }
 
-    //player point light
+    // player point light
     {
         glEnable(GL_BLEND);
-	    glBlendFunc(GL_ONE, GL_ONE);
-	    glDepthFunc(GL_EQUAL);
+        glBlendFunc(GL_ONE, GL_ONE);
+        glDepthFunc(GL_EQUAL);
 
         glm::vec3 point_light_pos(player_pos.x, player_pos.y, 2.0f);
         glm::vec3 point_light_energy(0.1f, 0.1f, 0.1f);
@@ -350,7 +261,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
 
         glDisable(GL_BLEND);
     }
-    
+
     GL_ERRORS();
 
     draw_overlay(drawable_size);
@@ -373,7 +284,7 @@ void PlayMode::draw_overlay(glm::uvec2 const &drawable_size)
     {
         float s = 0.1f;
         glm::u8vec4 color = {255, 255, 255, 255};
-        if (hit.obj->radar_color == 1)
+        if (hit.obj->type == ObjectType::Player)
         {
             color = {255, 0, 0, 255};
         }
@@ -396,6 +307,84 @@ void PlayMode::draw_overlay(glm::uvec2 const &drawable_size)
 
 glm::vec2 PlayMode::local_player_pos()
 {
-    glm::vec3 p = network_drawables[game.local_player->id]->transform->position;
+    glm::vec3 p = network_drawables[local_player->id]->transform->position;
     return {p.x, p.y};
+}
+
+bool PlayMode::recv_state_message(Connection *connection_)
+{
+    assert(connection_);
+    auto &connection = *connection_;
+    auto &recv_buffer = connection.recv_buffer;
+
+    if (recv_buffer.size() < 4)
+        return false;
+    if (recv_buffer[0] != uint8_t(Message::S2C_State))
+        return false;
+    uint32_t size = (uint32_t(recv_buffer[3]) << 16) | (uint32_t(recv_buffer[2]) << 8) | uint32_t(recv_buffer[1]);
+    uint32_t at = 0;
+    // expecting complete message:
+    if (recv_buffer.size() < 4 + size)
+        return false;
+
+    // copy bytes from buffer and advance position:
+    auto read = [&](auto *val)
+    {
+        if (at + sizeof(*val) > size)
+        {
+            throw std::runtime_error("Ran out of bytes reading state message.");
+        }
+        std::memcpy(val, &recv_buffer[4 + at], sizeof(*val));
+        at += sizeof(*val);
+    };
+
+    network_objects.clear();
+    uint8_t network_objects_count;
+    read(&network_objects_count);
+    for (uint8_t i = 0; i < network_objects_count; ++i)
+    {
+        network_objects.emplace_back();
+        NetworkObject &obj = network_objects.back();
+        obj.receive(&at, recv_buffer);
+        // find local player
+        if (i == 0)
+        {
+            local_player = &obj;
+        }
+        // find drawable
+        auto drawable = network_drawables.find(obj.id);
+        // delete if mark deleted
+        if (obj.deleted)
+        {
+            if (drawable != network_drawables.end())
+            {
+                scene.drawables.remove_if([&](const Scene::Drawable &d)
+                                          { return &d == drawable->second; });
+                network_drawables.erase(obj.id);
+            }
+            network_objects.pop_back();
+            continue;
+        }
+        // create drawable if not exit on client
+        if (drawable == network_drawables.end())
+        {
+            network_drawables[obj.id] = create_drawable_at(scene, obj.type, glm::vec3(obj.position, 0), glm::vec3(obj.scale, 1));
+        }
+        // update drawable position
+        else
+        {
+            // std::cout << "update torpedo\n";
+            drawable->second->transform->position = glm::vec3(obj.position, 0);
+            drawable->second->transform->scale = glm::vec3(obj.scale, 1);
+        }
+    }
+    if (at != size)
+    {
+        throw std::runtime_error("Trailing data in state message.");
+    }
+
+    // delete message from buffer:
+    recv_buffer.erase(recv_buffer.begin(), recv_buffer.begin() + 4 + size);
+
+    return true;
 }

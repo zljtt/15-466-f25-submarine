@@ -9,11 +9,11 @@ static inline bool overlaps(const AABB &a, const AABB &b)
             a.min.y < b.max.y && a.max.y > b.min.y);
 };
 
-static inline glm::vec2 resolve_axis(GameObject &player,
+static inline glm::vec2 resolve_axis(GameObject *object,
                                      const GameObject &obs,
                                      int axis)
 {
-    AABB p = player.get_aabb();
+    AABB p = object->get_aabb();
     AABB o = obs.get_aabb();
     if (!overlaps(p, o))
         return {0, 0};

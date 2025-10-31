@@ -152,6 +152,7 @@ void PlayMode::update(float elapsed)
     update_connection(elapsed);
     update_radar(elapsed);
     update_camera(elapsed);
+    update_spotlight(elapsed);
 }
 
 void PlayMode::update_control(float elapsed)
@@ -209,6 +210,16 @@ void PlayMode::update_camera(float elapsed)
     camera->transform->position = glm::vec3(local_pos.x, local_pos.y, camera->transform->position.z);
 }
 
+void PlayMode::update_spotlight(float elapsed) {
+    //calculate spotlight direction
+    glm::vec2 cur_player_pos = local_player_pos();
+    glm::vec2 velocity = cur_player_pos - prev_player_pos;
+    prev_player_pos = cur_player_pos;
+
+    if (velocity.x > 1e-3f) spot_light_dir_x = 1.0f;
+    else if (velocity.x < -1e-3f) spot_light_dir_x = -1.0f;
+}
+
 void PlayMode::draw(glm::uvec2 const &drawable_size)
 {
     // update camera aspect ratio for drawable:
@@ -247,14 +258,41 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
         glBlendFunc(GL_ONE, GL_ONE);
         glDepthFunc(GL_EQUAL);
 
-        glm::vec3 point_light_pos(player_pos.x, player_pos.y, 2.0f);
-        glm::vec3 point_light_energy(0.1f, 0.1f, 0.1f);
+        glm::vec3 point_light_pos(player_pos.x, player_pos.y, 1.5f);
+        glm::vec3 point_light_energy(0.3f, 0.3f, 0.3f);
         // glm::vec3 point_light_energy(0.0f, 0.0f, 0.0f);
 
         glUseProgram(lit_color_texture_program->program);
         glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 0);
         glUniform3fv(lit_color_texture_program->LIGHT_LOCATION_vec3, 1, glm::value_ptr(point_light_pos));
         glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(point_light_energy));
+        glUseProgram(0);
+
+        scene.draw(*camera);
+
+        glDisable(GL_BLEND);
+    }
+
+    // player spot light
+    {
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_ONE, GL_ONE);
+        glDepthFunc(GL_EQUAL);
+
+        glm::vec3 spot_light_pos(player_pos.x, player_pos.y, 0.0f);
+        glm::vec3 spot_light_energy(5.0f, 5.0f, 5.0f);
+
+        // glm::vec3 spot_light_dir(1.0f, 0.0f, 0.0f);
+        glm::vec3 spot_light_dir(spot_light_dir_x, 0.0f, 0.0f);
+        spot_light_dir = glm::normalize(spot_light_dir);
+        float cos_cutoff = std::cos(cutoff);
+
+        glUseProgram(lit_color_texture_program->program);
+        glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 2);
+        glUniform3fv(lit_color_texture_program->LIGHT_LOCATION_vec3, 1, glm::value_ptr(spot_light_pos));
+        glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(spot_light_dir));
+        glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(spot_light_energy));
+        glUniform1f(lit_color_texture_program->LIGHT_CUTOFF_float, cos_cutoff);
         glUseProgram(0);
 
         scene.draw(*camera);

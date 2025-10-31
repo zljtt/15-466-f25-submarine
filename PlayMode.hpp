@@ -31,6 +31,7 @@ struct PlayMode : Mode
     void update_connection(float elapsed);
     void update_radar(float elapsed);
     void update_camera(float elapsed);
+    void update_spotlight(float elapsed);
     virtual void draw(glm::uvec2 const &drawable_size) override;
 
     //----- client game state -----
@@ -60,6 +61,9 @@ struct PlayMode : Mode
 
     float water_surface_y = 150.0f;
     float atten_speed = 0.010f;
+    float cutoff = glm::radians(20.0f);
+    glm::vec2 prev_player_pos = glm::vec2(0.0f);
+    float spot_light_dir_x = 0.0f;
 
     // used by client:
     // set game state from data in connection buffer

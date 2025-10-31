@@ -18,8 +18,8 @@ struct Game;
 
 enum class ObjectType : uint8_t
 {
-    Player = 0,
-    Obstacle = 1,
+    Obstacle = 0,
+    Player = 1,
     Torpedo = 2
 };
 

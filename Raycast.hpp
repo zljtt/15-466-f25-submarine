@@ -53,9 +53,8 @@ struct Ray2D
 
     /// Create Ray from point and direction
     explicit Ray2D(glm::vec2 point, glm::vec2 dir,
-                   glm::vec2 dist_bounds = glm::vec2{0.0f, std::numeric_limits<float>::infinity()},
-                   uint32_t depth = 0)
-        : point(point), dir(glm::normalize(dir)), depth(depth), dist_bounds(dist_bounds)
+                   glm::vec2 dist_bounds = glm::vec2{0.0f, std::numeric_limits<float>::infinity()})
+        : point(point), dir(glm::normalize(dir)), dist_bounds(dist_bounds)
     {
     }
 
@@ -73,9 +72,6 @@ struct Ray2D
     glm::vec2 point;
     /// The direction the ray travels in
     glm::vec2 dir;
-    /// Recursive depth of ray
-    uint32_t depth = 0;
-
     /// The minimum and maximum distance at which this ray can encounter collisions
     glm::vec2 dist_bounds = glm::vec2(0.0f, std::numeric_limits<float>::infinity());
 };

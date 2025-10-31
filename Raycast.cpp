@@ -115,7 +115,7 @@ Trace BVH::hit(const Ray2D &ray) const
     auto find_closest_hit = [&](auto &&self, size_t n, glm::vec2 t) -> void
     {
         // std::cout << "Finding cloest hit on node " << n << "\n";
-        if (t.x >= closest_hit.distance)
+        if (t.x > closest_hit.distance)
             return;
         t.y = std::min(t.y, closest_hit.distance);
         if (t.x > t.y)

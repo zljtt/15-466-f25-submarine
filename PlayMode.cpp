@@ -156,6 +156,7 @@ void PlayMode::update(float elapsed)
     update_radar(elapsed);
     update_camera(elapsed);
     update_spotlight(elapsed);
+    radar.update(elapsed);
 }
 
 void PlayMode::update_control(float elapsed)
@@ -306,9 +307,9 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
         glDisable(GL_BLEND);
     }
 
-    GL_ERRORS();
-
     draw_overlay(drawable_size);
+
+    GL_ERRORS();
 }
 
 void PlayMode::draw_overlay(glm::uvec2 const &drawable_size)
@@ -324,29 +325,24 @@ void PlayMode::draw_overlay(glm::uvec2 const &drawable_size)
     glm::mat4 P = glm::perspective(camera->fovy, aspect, 0.1f, 1000.0f);
     DrawLines hud(P * V);
 
-    auto draw_dot = [&](glm::vec3 p, Trace hit)
-    {
-        float s = 0.1f;
-        glm::u8vec4 color = {255, 255, 255, 255};
-        if (hit.obj->type == ObjectType::Player)
-        {
-            color = {255, 0, 0, 255};
-        }
-        hud.draw(p + glm::vec3(-s, 0, 0), p + glm::vec3(s, 0, 0), color);
-        hud.draw(p + glm::vec3(0, -s, 0), p + glm::vec3(0, s, 0), color);
-    };
+    radar.render(hud);
 
-    // glm::vec2 player_pos = local_player_pos();
-    std::vector<Trace> hits = radar.last_radar_hits;
-    // radar.raycast_surrounding(player_pos, Radar::RADAR_RANGE, Radar::RADAR_RAY_COUNT, hits);
+    // auto draw_point = [&](glm::vec3 p, Trace hit)
+    // {
+    //     GLuint vao, vbo;
+    //     glGenVertexArrays(1, &vao);
+    //     glBindVertexArray(vao);
 
-    for (const auto &h : hits)
-    {
-        glm::vec3 hitP = {h.point.x, h.point.y, 0};
-        draw_dot(hitP, h);
-        // hud.draw(hitP, {player_pos, 0});
-    }
-    // hud.draw(player_pos, glm::vec3(0, 0, 0));
+    //     glGenBuffers(1, &vbo);
+    //     glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    //     glBufferData(GL_ARRAY_BUFFER, sizeof(p), &p, GL_STATIC_DRAW);
+
+    //     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
+    //     glEnableVertexAttribArray(0);
+
+    //     glPointSize(6.0f);
+    //     glDrawArrays(GL_POINTS, 0, 1);
+    // };
 }
 
 glm::vec2 PlayMode::local_player_pos()

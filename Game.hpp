@@ -2,6 +2,7 @@
 
 #include "Scene.hpp"
 #include "GameObject.hpp"
+#include "Raycast.hpp"
 
 #include <glm/glm.hpp>
 
@@ -28,6 +29,7 @@ struct Game
     // for server
     std::list<GameObject> static_obstacles;  // the collision box should not be sync, instead generated from the scene on both server and client (if the client needs it)
     std::list<NetworkObject *> game_objects; // the dynamic game object sync to from server to client
+    BVH bvh;
 
     template <typename O>
     O *spawn_object()
@@ -43,11 +45,12 @@ struct Game
      * Don't call this to remove object, instead mark the object as deleted
      */
     void remove_object(uint32_t id);
-
     Game();
     ~Game();
     // state update function:
     void update(float elapsed);
+
+    Trace check_collision(GameObject *obj);
 
     // constants:
     // the update rate on the server:

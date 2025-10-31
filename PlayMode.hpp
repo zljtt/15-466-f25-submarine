@@ -40,7 +40,9 @@ struct PlayMode : Mode
     Scene scene;
 
     NetworkObject *local_player;
-    std::list<GameObject> local_obstacles;
+    // std::list<GameObject> local_obstacles;
+    BVH bvh;
+
     std::list<NetworkObject> network_objects;
 
     Radar radar;

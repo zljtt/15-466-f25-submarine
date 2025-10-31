@@ -9,7 +9,7 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/norm.hpp>
-#include "AABB.hpp"
+#include "BBox.hpp"
 
 //-----------------------------------------
 

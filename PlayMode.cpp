@@ -49,12 +49,15 @@ PlayMode::PlayMode(Client &client_) : scene(*prototype_scene), radar(this), clie
         throw std::runtime_error("Expecting scene to have exactly one camera, but it has " + std::to_string(scene.cameras.size()));
     camera = &scene.cameras.front();
 
+    std::vector<GameObject> obstacles;
     auto on_drawable = [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name)
     {
         // create collision box
-        local_obstacles.emplace_back(transform->position, transform->scale);
+        // local_obstacles.emplace_back(transform->position, transform->scale);
+        obstacles.emplace_back(transform->position, transform->scale);
     };
     Scene(data_path("prototype.scene"), on_drawable);
+    bvh.build(std::move(obstacles));
 }
 
 PlayMode::~PlayMode()
@@ -210,14 +213,17 @@ void PlayMode::update_camera(float elapsed)
     camera->transform->position = glm::vec3(local_pos.x, local_pos.y, camera->transform->position.z);
 }
 
-void PlayMode::update_spotlight(float elapsed) {
-    //calculate spotlight direction
+void PlayMode::update_spotlight(float elapsed)
+{
+    // calculate spotlight direction
     glm::vec2 cur_player_pos = local_player_pos();
     glm::vec2 velocity = cur_player_pos - prev_player_pos;
     prev_player_pos = cur_player_pos;
 
-    if (velocity.x > 1e-3f) spot_light_dir_x = 1.0f;
-    else if (velocity.x < -1e-3f) spot_light_dir_x = -1.0f;
+    if (velocity.x > 1e-3f)
+        spot_light_dir_x = 1.0f;
+    else if (velocity.x < -1e-3f)
+        spot_light_dir_x = -1.0f;
 }
 
 void PlayMode::draw(glm::uvec2 const &drawable_size)
@@ -318,7 +324,7 @@ void PlayMode::draw_overlay(glm::uvec2 const &drawable_size)
     glm::mat4 P = glm::perspective(camera->fovy, aspect, 0.1f, 1000.0f);
     DrawLines hud(P * V);
 
-    auto draw_dot = [&](glm::vec3 p, RaycastResult hit)
+    auto draw_dot = [&](glm::vec3 p, Trace hit)
     {
         float s = 0.1f;
         glm::u8vec4 color = {255, 255, 255, 255};
@@ -331,7 +337,7 @@ void PlayMode::draw_overlay(glm::uvec2 const &drawable_size)
     };
 
     // glm::vec2 player_pos = local_player_pos();
-    std::vector<RaycastResult> hits = radar.last_radar_hits;
+    std::vector<Trace> hits = radar.last_radar_hits;
     // radar.raycast_surrounding(player_pos, Radar::RADAR_RANGE, Radar::RADAR_RAY_COUNT, hits);
 
     for (const auto &h : hits)

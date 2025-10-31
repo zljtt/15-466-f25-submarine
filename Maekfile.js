@@ -179,6 +179,8 @@ const common_names = [
     maek.CPP('Connection.cpp'),
     maek.CPP('GameObject.cpp'),
     maek.CPP('Radar.cpp'),
+    maek.CPP('Raycast.cpp'),
+    maek.CPP('BBox.cpp'),
     maek.CPP('PlayMode.cpp'),
     maek.CPP('Player.cpp'),
     maek.CPP('Torpedo.cpp'),

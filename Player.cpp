@@ -8,7 +8,7 @@
 #include <iostream>
 #include <cstring>
 
-#include "AABB.hpp"
+#include "BBox.hpp"
 
 void Player::init()
 {
@@ -21,6 +21,14 @@ inline glm::vec2 normalize(glm::vec2 v)
 {
     float m = glm::length(v);
     return (m > 1e-6f) ? (v / m) : glm::vec2(0.0f);
+}
+
+bool Player::can_collide(const NetworkObject *other) const
+{
+    if (other->type == ObjectType::Player && other->id != id)
+        return true;
+
+    return false;
 }
 
 void Player::update(float elapsed, Game *game)
@@ -48,7 +56,6 @@ void Player::update(float elapsed, Game *game)
 
 void Player::update_movement(float elapsed, Game *game, glm::vec2 control)
 {
-
     glm::vec2 v_desired = normalize(control) * MAX_SPEED;
     glm::vec2 dv = v_desired - velocity;
     float rate = (glm::dot(dv, v_desired) > 0.0f) ? ACCEL_RATE : DECEL_RATE;
@@ -64,42 +71,22 @@ void Player::update_movement(float elapsed, Game *game, glm::vec2 control)
     }
     // drag
     velocity *= (1.0f / (1.0f + DRAG_S * elapsed));
+    // clamp
     float s = glm::length(velocity);
     if (s > MAX_SPEED)
         velocity *= (MAX_SPEED / s);
+
     // move at the end
     glm::vec2 delta = velocity * elapsed;
-    // position += delta;
+    if (delta.x > 1e-6f)
+        data.player_facing = true;
+    if (delta.x < -1e-6f)
+        data.player_facing = false;
 
-    // check collision
-    // combine static obstacle and players, vector is better for traversing
-    std::vector<GameObject> targets;
-    targets.reserve(game->static_obstacles.size() + game->game_objects.size());
-    targets.insert(targets.end(), game->static_obstacles.begin(), game->static_obstacles.end());
-    for (auto &obj : game->game_objects)
+    auto collider = move_with_collision(game, delta);
+    if (collider.size() > 0)
     {
-        if (obj->id == id)
-            continue;
-        targets.push_back(*obj);
-    }
-
-    position.x += delta.x;
-    // if overlapping any obstacle, push out on X
-    for (int pass = 0; pass < 2; ++pass)
-    {
-        for (const auto &o : targets)
-        {
-            position += resolve_axis(this, o, 0);
-        }
-    }
-
-    position.y += delta.y;
-    for (int pass = 0; pass < 2; ++pass)
-    {
-        for (const auto &o : targets)
-        {
-            position += resolve_axis(this, o, 1);
-        }
+        velocity = glm::vec2(0, 0);
     }
 }
 void Player::update_weapon(float elapsed, Game *game)
@@ -111,7 +98,9 @@ void Player::update_weapon(float elapsed, Game *game)
         // std::cout << "Player Pos: " << p.position.x << " " << p.position.y << " \n";
         Torpedo *torp = game->spawn_object<Torpedo>();
         torp->position = position;
-        torp->velocity = glm::normalize(velocity) * Torpedo::TORPEDO_SPEED;
+
+        torp->velocity = glm::vec2(data.player_facing ? 1 : -1, 0) * Torpedo::TORPEDO_SPEED;
+        torp->owner = id;
         data.torpedo_timer = 0.0f;
     }
     else

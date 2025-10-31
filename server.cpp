@@ -59,12 +59,15 @@ int main(int argc, char **argv)
         // keep track of game state:
         Game game;
 
+        std::vector<GameObject> obstacles;
         auto on_drawable = [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name)
         {
             // create collision box
             game.static_obstacles.emplace_back(transform->position, transform->scale);
+            obstacles.emplace_back(transform->position, transform->scale);
         };
         Scene(data_path("prototype.scene"), on_drawable);
+        game.bvh.build(std::move(obstacles));
 
         while (true)
         {

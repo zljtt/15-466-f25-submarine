@@ -1,5 +1,7 @@
 #pragma once
 #include "Connection.hpp"
+#include "BBox.hpp"
+#include "Raycast.hpp"
 
 #include <glm/glm.hpp>
 
@@ -21,11 +23,6 @@ enum class ObjectType : uint8_t
     Torpedo = 2
 };
 
-struct AABB
-{
-    glm::vec2 min, max;
-};
-
 /**
  * The base game object class for all objects on map
  */
@@ -37,16 +34,22 @@ struct GameObject
     glm::vec2 scale = glm::vec2(1.0f, 1.0f);
 
     GameObject() {};
-    GameObject(glm::vec2 pos, glm::vec2 box) : position(pos), scale(box) {};
+    GameObject(glm::vec2 pos, glm::vec2 box) : position(pos), scale(box)
+    {
+        if (box.x < 0)
+            box.x = -box.x;
+        if (box.y < 0)
+            box.y = -box.y;
+    };
 
     virtual void init() {};
     virtual void update(float elapsed, Game *game) {};
 
-    AABB get_aabb() const
+    BBox get_BBox() const
     {
         return {position - scale, position + scale};
     }
-
+    Trace hit(Ray2D ray) const;
     virtual ~GameObject() {};
 };
 
@@ -66,6 +69,9 @@ struct NetworkObject : GameObject
     NetworkObject() {};
     virtual ~NetworkObject() {};
     virtual void init() override;
+    void gather_collision_candidates(Game *game, const BBox &sweepBox, std::vector<GameObject *> &out);
+    virtual bool can_collide(const NetworkObject *other) const;
+    std::vector<GameObject *> move_with_collision(Game *game, glm::vec2 movement);
     void send(Connection *connection) const;
     void receive(uint32_t *at, std::vector<uint8_t> &recv_buffer);
 };
@@ -85,10 +91,10 @@ struct Player : NetworkObject
     virtual ~Player() {};
 
     static constexpr float MAX_SPEED = 10.0f;
-    static constexpr float ACCEL_RATE = 30.0f;
-    static constexpr float DECEL_RATE = 20.0f;
-    static constexpr float DRAG_S = 1.5f;
-    static constexpr float TORPEDO_COOLDOWN = 2.0f;
+    static constexpr float ACCEL_RATE = 20.0f;
+    static constexpr float DECEL_RATE = 5.0f;
+    static constexpr float DRAG_S = 0.5f;
+    static constexpr float TORPEDO_COOLDOWN = 1.0f;
 
     // player inputs (sent from client):
     struct Controls
@@ -107,9 +113,11 @@ struct Player : NetworkObject
     struct PlayerData
     {
         float torpedo_timer;
+        bool player_facing; // false is left, true is right
     } data;
 
     virtual void init() override;
+    virtual bool can_collide(const NetworkObject *other) const override;
     virtual void update(float elapsed, Game *game) override;
     void update_weapon(float elapsed, Game *game);
     void update_movement(float elapsed, Game *game, glm::vec2 control);
@@ -124,9 +132,11 @@ struct Torpedo : NetworkObject
     static constexpr float TORPEDO_SPEED = 15.0f;
 
     // Torpedo states
+    uint32_t owner;
     bool tracking; // if the torpedo could detect other submarines, switch to true
     float age;
 
+    virtual bool can_collide(const NetworkObject *other) const override;
     virtual void update(float elapsed, Game *game) override;
     virtual void init() override;
 };

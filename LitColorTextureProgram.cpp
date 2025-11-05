@@ -75,6 +75,8 @@ LitColorTextureProgram::LitColorTextureProgram() {
 		"uniform vec3 LIGHT_DIRECTION;\n"
 		"uniform vec3 LIGHT_ENERGY;\n"
 		"uniform float LIGHT_CUTOFF;\n"
+		//texture tiling:
+		"uniform float TILES_PER_UNIT;\n"
 		"in vec3 position;\n"
 		"in vec3 normal;\n"
 		"in vec4 color;\n"
@@ -105,7 +107,10 @@ LitColorTextureProgram::LitColorTextureProgram() {
 		"	} else { //(LIGHT_TYPE == 3) //directional light \n"
 		"		e = max(0.0, dot(n,-LIGHT_DIRECTION)) * LIGHT_ENERGY;\n"
 		"	}\n"
-		"	vec4 albedo = texture(TEX, texCoord) * color;\n"
+		//"	vec4 albedo = texture(TEX, texCoord) * color;\n"
+		//texture tiling:
+		"	vec2 worldUV = position.xy * TILES_PER_UNIT;\n"
+		"	vec4 albedo = texture(TEX, worldUV) * color;\n"
 		"	fragColor = vec4(e*albedo.rgb, albedo.a);\n"
 		/* DEBUG: check color output linearity:
 		"	float t = random(gl_FragCoord.xy/1280.0);\n"
@@ -144,11 +149,13 @@ LitColorTextureProgram::LitColorTextureProgram() {
 
 
 	GLuint TEX_sampler2D = glGetUniformLocation(program, "TEX");
+	TILES_PER_UNIT_float = glGetUniformLocation(program, "TILES_PER_UNIT");
 
 	//set TEX to always refer to texture binding zero:
 	glUseProgram(program); //bind program -- glUniform* calls refer to this program now
 
 	glUniform1i(TEX_sampler2D, 0); //set TEX to sample from GL_TEXTURE0
+	glUniform1f(TILES_PER_UNIT_float, 1.0f);
 
 	glUseProgram(0); //unbind program -- glUniform* calls refer to ??? now
 }

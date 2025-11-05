@@ -31,6 +31,7 @@ struct LitColorTextureProgram {
 	
 	//Textures:
 	//TEXTURE0 - texture that is accessed by TexCoord
+	GLuint TILES_PER_UNIT_float = -1U;
 };
 
 extern Load< LitColorTextureProgram > lit_color_texture_program;

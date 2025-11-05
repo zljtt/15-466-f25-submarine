@@ -17,6 +17,46 @@
 #include <random>
 #include <array>
 
+#include "load_save_png.hpp"
+
+static GLuint load_texture_from_png(const std::string &path) {
+    glm::uvec2 size;
+    std::vector<glm::u8vec4> data;
+    load_png(path, &size, &data, UpperLeftOrigin);
+
+    GLuint tex = 0;
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,
+                 size.x, size.y, 0,
+                 GL_RGBA, GL_UNSIGNED_BYTE, data.data());
+
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    return tex;
+}
+
+
+
+Load<GLuint> tex_obstacle(LoadTagDefault, []() -> GLuint const * {
+    // GLuint t = load_texture_from_png(data_path("obstacle_basecolor.png"));
+    GLuint t = load_texture_from_png(data_path("rock_basecolor.png"));
+
+    return new GLuint(t);
+});
+
 GLuint meshes_for_lit_color_texture_program = 0;
 
 Load<MeshBuffer> prototype_scene_meshes(LoadTagDefault, []() -> MeshBuffer const *
@@ -39,6 +79,9 @@ Load<Scene> prototype_scene(LoadTagDefault, []() -> Scene const *
         drawable.pipeline.type = mesh.type;
         drawable.pipeline.start = mesh.start;
         drawable.pipeline.count = mesh.count;
+
+        drawable.pipeline.textures[0].target = GL_TEXTURE_2D;
+        drawable.pipeline.textures[0].texture = *tex_obstacle;
     };
     return new Scene(data_path("prototype.scene"), on_drawable); });
 
@@ -243,6 +286,10 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
     glDepthFunc(GL_LESS);
+
+    glUseProgram(lit_color_texture_program->program);
+    glUniform1f(lit_color_texture_program->TILES_PER_UNIT_float, 0.1f);
+    glUseProgram(0);
 
     // environment light
     {

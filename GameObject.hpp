@@ -4,15 +4,9 @@
 #include "Raycast.hpp"
 
 #include <glm/glm.hpp>
-
 #include <string>
 #include <list>
-#include <random>
 #include <vector>
-
-static std::mt19937 mt(0x15466666); // used for spawning players
-static std::uniform_int_distribution<uint32_t> dist(1u, 0xFFFFFFFFu);
-static uint32_t next_player_number = 1; // used for naming players
 
 struct Game;
 
@@ -20,7 +14,8 @@ enum class ObjectType : uint8_t
 {
     Obstacle = 0,
     Player = 1,
-    Torpedo = 2
+    Torpedo = 2,
+    Flag = 3
 };
 
 /**
@@ -63,14 +58,20 @@ struct NetworkObject : GameObject
     uint32_t id;
     glm::vec2 velocity = glm::vec2(0.0f, 0.0f);
 
-    // server only
+    // server only, set to true to mark this object as deleted
+    // it will be deleted at the end of this frame
     bool deleted = false;
 
     NetworkObject() {};
     virtual ~NetworkObject() {};
     virtual void init() override;
     void gather_collision_candidates(Game *game, const BBox &sweepBox, std::vector<GameObject *> &out);
-    virtual bool can_collide(const NetworkObject *other) const;
+    /**
+     * 0: collide check fail, don't collide with the other
+     * 1: can collide, can't move into the other
+     * 2: can collide, and can move into the other
+     */
+    virtual int can_collide(const NetworkObject *other) const;
     std::vector<GameObject *> move_with_collision(Game *game, glm::vec2 movement);
     void send(Connection *connection) const;
     void receive(uint32_t *at, std::vector<uint8_t> &recv_buffer);
@@ -90,12 +91,15 @@ struct Player : NetworkObject
     Player() {};
     virtual ~Player() {};
 
+    // movement
     static constexpr float MAX_SPEED = 10.0f;
     static constexpr float ACCEL_RATE = 20.0f;
     static constexpr float DECEL_RATE = 5.0f;
     static constexpr float DRAG_S = 0.5f;
+    // combat
     static constexpr float TORPEDO_COOLDOWN = 1.0f;
-
+    static constexpr float MAX_HEALTH = 100.0f;
+    static constexpr float COLLISION_DAMAGAE = 10.0f;
     // player inputs (sent from client):
     struct Controls
     {
@@ -112,15 +116,25 @@ struct Player : NetworkObject
     // additional player data
     struct PlayerData
     {
-        float torpedo_timer;
-        bool player_facing; // false is left, true is right
+        float torpedo_timer = 0.0f;
+        bool player_facing = false; // false is left, true is right
+        float hp = MAX_HEALTH;
+        bool has_flag = false;
+        int flag_count = 0;
+        glm::vec2 spawn_pos;
+
+        void send(Connection *connection) const;
+        void receive(uint32_t *at, std::vector<uint8_t> &recv_buffer);
     } data;
 
     virtual void init() override;
-    virtual bool can_collide(const NetworkObject *other) const override;
+    virtual int can_collide(const NetworkObject *other) const override;
     virtual void update(float elapsed, Game *game) override;
     void update_weapon(float elapsed, Game *game);
     void update_movement(float elapsed, Game *game, glm::vec2 control);
+    void update_win_lose(float elapsed, Game *game);
+    void take_damage(float damage, GameObject *source);
+    void die(Game *game);
 };
 
 struct Torpedo : NetworkObject
@@ -130,13 +144,60 @@ struct Torpedo : NetworkObject
     // time till torpedo explode on its own
     static constexpr float TORPEDO_LIFETIME = 1.0f;
     static constexpr float TORPEDO_SPEED = 15.0f;
+    static constexpr float TORPEDO_DAMAGE = 30.0f;
 
     // Torpedo states
     uint32_t owner;
     bool tracking; // if the torpedo could detect other submarines, switch to true
     float age;
 
-    virtual bool can_collide(const NetworkObject *other) const override;
+    virtual int can_collide(const NetworkObject *other) const override;
     virtual void update(float elapsed, Game *game) override;
     virtual void init() override;
 };
+
+struct Flag : NetworkObject
+{
+    Flag() {};
+    virtual ~Flag() {};
+
+    // virtual bool can_collide(const NetworkObject *other) const override;
+    virtual void update(float elapsed, Game *game) override;
+    virtual void init() override;
+};
+
+/**
+ * @brief Find the colliders according to the given object type
+ */
+template <typename O>
+static inline O *get_colliders(std::vector<GameObject *> &all_hits)
+{
+    static_assert(std::is_base_of_v<GameObject, O>, "Can only spawn game object");
+    if (all_hits.size() > 0)
+    {
+        for (auto hit : all_hits)
+        {
+            O *other = dynamic_cast<O *>(hit);
+            if (other)
+            {
+                return other;
+            }
+        }
+    }
+    return nullptr;
+}
+
+static inline GameObject *get_colliders(std::vector<GameObject *> &all_hits, ObjectType type)
+{
+    if (all_hits.size() > 0)
+    {
+        for (auto hit : all_hits)
+        {
+            if (hit->type == type)
+            {
+                return hit;
+            }
+        }
+    }
+    return nullptr;
+}

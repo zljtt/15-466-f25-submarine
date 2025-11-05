@@ -183,6 +183,7 @@ const common_names = [
     maek.CPP('BBox.cpp'),
     maek.CPP('PlayMode.cpp'),
     maek.CPP('Player.cpp'),
+    maek.CPP('Flag.cpp'),
     maek.CPP('Torpedo.cpp'),
     maek.CPP('Prefab.cpp'),
     maek.CPP('LitColorTextureProgram.cpp'),

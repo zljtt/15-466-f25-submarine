@@ -19,15 +19,15 @@ void Torpedo::init()
     age = 0;
 }
 
-bool Torpedo::can_collide(const NetworkObject *other) const
+int Torpedo::can_collide(const NetworkObject *other) const
 {
     if (other->id == this->id)
-        return false;
+        return 0;
     // don't collide with owner
     if (other->id == this->owner)
-        return false;
+        return 0;
 
-    return true;
+    return 1;
 }
 
 void Torpedo::update(float elapsed, Game *game)
@@ -39,16 +39,10 @@ void Torpedo::update(float elapsed, Game *game)
     {
         deleted = true;
     }
-    if (hits.size() > 0)
+    auto player_hit = get_colliders<Player>(hits);
+    if (player_hit)
     {
-        for (auto hit : hits)
-        {
-            Player *opponent = dynamic_cast<Player *>(hit);
-            if (opponent)
-            {
-                std::cout << "Hit opponent \n";
-            }
-        }
+        player_hit->take_damage(TORPEDO_DAMAGE, this);
         deleted = true;
     }
 }

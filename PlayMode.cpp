@@ -19,7 +19,8 @@
 
 #include "load_save_png.hpp"
 
-static GLuint load_texture_from_png(const std::string &path) {
+static GLuint load_texture_from_png(const std::string &path)
+{
     glm::uvec2 size;
     std::vector<glm::u8vec4> data;
     load_png(path, &size, &data, UpperLeftOrigin);
@@ -40,22 +41,20 @@ static GLuint load_texture_from_png(const std::string &path) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
     // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
     glBindTexture(GL_TEXTURE_2D, 0);
     return tex;
 }
 
-
-
-Load<GLuint> tex_obstacle(LoadTagDefault, []() -> GLuint const * {
+Load<GLuint> tex_obstacle(LoadTagDefault, []() -> GLuint const *
+                          {
     // GLuint t = load_texture_from_png(data_path("obstacle_basecolor.png"));
     GLuint t = load_texture_from_png(data_path("rock_basecolor.png"));
 
-    return new GLuint(t);
-});
+    return new GLuint(t); });
 
 GLuint meshes_for_lit_color_texture_program = 0;
 
@@ -260,14 +259,14 @@ void PlayMode::update_camera(float elapsed)
 void PlayMode::update_spotlight(float elapsed)
 {
     // calculate spotlight direction
-    glm::vec2 cur_player_pos = local_player_pos();
-    glm::vec2 velocity = cur_player_pos - prev_player_pos;
-    prev_player_pos = cur_player_pos;
+    // glm::vec2 cur_player_pos = local_player_pos();
+    // glm::vec2 velocity = cur_player_pos - prev_player_pos;
+    // prev_player_pos = cur_player_pos;
 
-    if (velocity.x > 1e-3f)
-        spot_light_dir_x = 1.0f;
-    else if (velocity.x < -1e-3f)
-        spot_light_dir_x = -1.0f;
+    // if (velocity.x > 1e-3f)
+    //     spot_light_dir_x = 1.0f;
+    // else if (velocity.x < -1e-3f)
+    //     spot_light_dir_x = -1.0f;
 }
 
 void PlayMode::draw(glm::uvec2 const &drawable_size)
@@ -337,7 +336,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
         glm::vec3 spot_light_energy(5.0f, 5.0f, 5.0f);
 
         // glm::vec3 spot_light_dir(1.0f, 0.0f, 0.0f);
-        glm::vec3 spot_light_dir(spot_light_dir_x, 0.0f, 0.0f);
+        glm::vec3 spot_light_dir(player_data.player_facing ? 1.0f : -1.0f, 0.0f, 0.0f);
         spot_light_dir = glm::normalize(spot_light_dir);
         float cos_cutoff = std::cos(cutoff);
 
@@ -372,6 +371,11 @@ void PlayMode::draw_overlay(glm::uvec2 const &drawable_size)
     glm::mat4 P = glm::perspective(camera->fovy, aspect, 0.1f, 1000.0f);
     DrawLines hud(P * V);
 
+    // draw spawn point
+    glm::vec3 spawn(player_data.spawn_pos, 0);
+    hud.draw(spawn + glm::vec3(-5, 0, 0), spawn + glm::vec3(5, 0, 0), glm::u8vec4(0, 255, 0, 255));
+    hud.draw(spawn + glm::vec3(0, -5, 0), spawn + glm::vec3(0, 5, 0), glm::u8vec4(0, 255, 0, 255));
+    // draw radar
     radar.render(hud);
 
     // auto draw_point = [&](glm::vec3 p, Trace hit)
@@ -465,6 +469,9 @@ bool PlayMode::recv_state_message(Connection *connection_)
             drawable->second->transform->scale = glm::vec3(obj.scale, 1);
         }
     }
+
+    player_data.receive(&at, recv_buffer);
+
     if (at != size)
     {
         throw std::runtime_error("Trailing data in state message.");

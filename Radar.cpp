@@ -2,14 +2,15 @@
 #include "PlayMode.hpp"
 #include "BBox.hpp"
 #include "BBox.hpp"
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/rotate_vector.hpp>
 // #include <algorithm>
 // #include <cfloat>
 // #include <cmath>
 void Radar::render(DrawLines &hud)
 {
-    auto draw_dot = [&](glm::vec3 p, glm::u8vec4 color)
+    auto draw_dot = [&](glm::vec3 p, glm::u8vec4 color, float s)
     {
-        float s = 0.1f;
         hud.draw(p + glm::vec3(-s, 0, 0), p + glm::vec3(s, 0, 0), color);
         hud.draw(p + glm::vec3(0, -s, 0), p + glm::vec3(0, s, 0), color);
     };
@@ -18,13 +19,27 @@ void Radar::render(DrawLines &hud)
     {
         for (auto &p : result.points)
         {
-            if (!p.touched && result.age > RADAR_RANGE / RADAR_SPEED)
+            if (!p.touched)
             {
-                // don't draw if untouched
+                if (result.age < RADAR_RANGE / RADAR_SPEED)
+                {
+                    draw_dot(glm::vec3(result.origin + p.current * p.direction, 0), default_color, 0.05f);
+                    float angle = (glm::pi<float>() * 2) / 5;
+
+                    glm::vec2 fake_dir1 = glm::rotate(p.direction, angle / (4 + 1));
+                    glm::vec2 fake_dir2 = glm::rotate(p.direction, 2 * angle / (4 + 1));
+                    glm::vec2 fake_dir3 = glm::rotate(p.direction, -angle / (4 + 1));
+                    glm::vec2 fake_dir4 = glm::rotate(p.direction, -2 * angle / (4 + 1));
+
+                    draw_dot(glm::vec3(result.origin + p.current * fake_dir1, 0), default_color, 0.05f);
+                    draw_dot(glm::vec3(result.origin + p.current * fake_dir2, 0), default_color, 0.05f);
+                    draw_dot(glm::vec3(result.origin + p.current * fake_dir3, 0), default_color, 0.05f);
+                    draw_dot(glm::vec3(result.origin + p.current * fake_dir4, 0), default_color, 0.05f);
+                }
             }
             else
             {
-                draw_dot(glm::vec3(result.origin + p.current * p.direction, 0), p.color);
+                draw_dot(glm::vec3(result.origin + p.current * p.direction, 0), p.color, 0.1f);
             }
         }
     }
@@ -88,14 +103,18 @@ void Radar::scan(GameObject const *origin, float range, int count)
 glm::u8vec4 Radar::get_radar_color(GameObject const *target)
 {
     if (!target)
-        return {255, 255, 255, 255};
+        return default_color;
 
     switch (target->type)
     {
     case ObjectType::Player:
-        return {255, 0, 0, 255};
+        return {0xff, 0x00, 0x00, 0xff};
+    case ObjectType::Obstacle:
+        return {0xff, 0xff, 0xff, 0xff};
+    case ObjectType::Flag:
+        return {0xff, 0xff, 0xff, 0xff};
     default:
-        return {255, 255, 255, 255};
+        return default_color;
     }
 }
 Trace Radar::raycast_direction(const glm::vec2 origin, glm::vec2 direction, float range)

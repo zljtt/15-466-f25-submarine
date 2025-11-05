@@ -50,6 +50,8 @@ struct PlayMode : Mode
 
     // input tracking for local player:
     Player::Controls controls;
+    // data for local player;
+    Player::PlayerData player_data;
 
     // last message from server:
     std::string server_message;

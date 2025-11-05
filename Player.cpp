@@ -14,7 +14,6 @@ void Player::init()
 {
     NetworkObject::init();
     type = ObjectType::Player;
-    position = glm::vec3{148, 70, 0};
 }
 
 inline glm::vec2 normalize(glm::vec2 v)
@@ -23,12 +22,13 @@ inline glm::vec2 normalize(glm::vec2 v)
     return (m > 1e-6f) ? (v / m) : glm::vec2(0.0f);
 }
 
-bool Player::can_collide(const NetworkObject *other) const
+int Player::can_collide(const NetworkObject *other) const
 {
     if (other->type == ObjectType::Player && other->id != id)
-        return true;
-
-    return false;
+        return 2;
+    if (other->type == ObjectType::Flag)
+        return 1;
+    return 0;
 }
 
 void Player::update(float elapsed, Game *game)
@@ -45,7 +45,7 @@ void Player::update(float elapsed, Game *game)
 
     update_weapon(elapsed, game);
     update_movement(elapsed, game, control_dir);
-
+    update_win_lose(elapsed, game);
     // reset 'downs' since controls have been handled:
     controls.left.downs = 0;
     controls.right.downs = 0;
@@ -83,12 +83,27 @@ void Player::update_movement(float elapsed, Game *game, glm::vec2 control)
     if (delta.x < -1e-6f)
         data.player_facing = false;
 
-    auto collider = move_with_collision(game, delta);
-    if (collider.size() > 0)
+    auto hits = move_with_collision(game, delta);
+
+    if (hits.size() > 0)
     {
-        velocity = glm::vec2(0, 0);
+        // if hit flag
+        auto flag = get_colliders<Flag>(hits);
+        if (flag)
+        {
+            data.has_flag = true;
+            flag->deleted = true;
+        }
+        // if hit obstacle
+        auto obstacle = get_colliders(hits, ObjectType::Obstacle);
+        if (obstacle)
+        {
+            take_damage(COLLISION_DAMAGAE, obstacle);
+            velocity = glm::vec2(0, 0);
+        }
     }
 }
+
 void Player::update_weapon(float elapsed, Game *game)
 {
     // spawn a torpedo
@@ -107,6 +122,47 @@ void Player::update_weapon(float elapsed, Game *game)
     {
         data.torpedo_timer += elapsed;
     }
+}
+
+void Player::update_win_lose(float elapsed, Game *game)
+{
+    if (data.hp < 0)
+    {
+        die(game);
+        return;
+    }
+
+    if (glm::distance(position, data.spawn_pos) < 5)
+    {
+        // win
+        if (data.has_flag)
+        {
+            std::cout << "Player " << id << " collect a flag\n";
+            data.flag_count++;
+            data.has_flag = false;
+        }
+        return;
+    }
+}
+
+void Player::take_damage(float damage, GameObject *source)
+{
+    std::cout << "Player " << id << " take " << damage << " damage from " << int(source->type) << "\n";
+    data.hp -= damage;
+}
+
+void Player::die(Game *game)
+{
+    std::cout << "Player " << id << " die\n";
+    if (data.has_flag)
+    {
+        // drop flag
+        auto flag = game->spawn_object<Flag>();
+        flag->position = position;
+        data.has_flag = false;
+    }
+    data.hp = MAX_HEALTH;
+    position = data.spawn_pos;
 }
 
 void Player::Controls::send_controls_message(Connection *connection_) const
@@ -179,3 +235,28 @@ bool Player::Controls::recv_controls_message(Connection *connection_)
 
     return true;
 }
+
+void Player::PlayerData::send(Connection *connection) const
+{
+    connection->send(torpedo_timer);
+    connection->send(player_facing);
+    connection->send(hp);
+    connection->send(has_flag);
+    connection->send(flag_count);
+    connection->send(spawn_pos);
+};
+
+void Player::PlayerData::receive(uint32_t *at, std::vector<uint8_t> &recv_buffer)
+{
+    auto read = [&](auto *val)
+    {
+        std::memcpy(val, &recv_buffer[4 + *at], sizeof(*val));
+        *at += sizeof(*val);
+    };
+    read(&torpedo_timer);
+    read(&player_facing);
+    read(&hp);
+    read(&has_flag);
+    read(&flag_count);
+    read(&spawn_pos);
+};

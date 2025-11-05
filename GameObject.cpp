@@ -21,7 +21,7 @@ inline float penetration1D(float min1, float max1, float min2, float max2)
     return (penl < penr) ? -penl : penr;
 }
 
-static inline void check_collision_in_axis(GameObject *object, float move, int axis, std::vector<GameObject *> candidates, std::vector<GameObject *> &hits)
+static inline void check_collision_in_axis(NetworkObject *object, float move, int axis, std::vector<GameObject *> candidates, std::vector<GameObject *> &hits)
 {
     if (move == 0.0f)
         return;
@@ -49,8 +49,12 @@ static inline void check_collision_in_axis(GameObject *object, float move, int a
                 float push = penetration1D(self.min.x, self.max.x, other.min.x, other.max.x);
                 if (push != 0.0f)
                 {
-                    object->position.x += push;
-                    pushed = true;
+                    auto no = dynamic_cast<NetworkObject *>(o);
+                    if (no == nullptr || object->can_collide(no) == 1)
+                    {
+                        object->position.x += push;
+                        pushed = true;
+                    }
                     hits.push_back(o);
                 }
             }
@@ -63,8 +67,12 @@ static inline void check_collision_in_axis(GameObject *object, float move, int a
                 float push = penetration1D(self.min.y, self.max.y, other.min.y, other.max.y);
                 if (push != 0.0f)
                 {
-                    object->position.y += push;
-                    pushed = true;
+                    auto no = dynamic_cast<NetworkObject *>(o);
+                    if (no == nullptr || object->can_collide(no) == 1)
+                    {
+                        object->position.y += push;
+                        pushed = true;
+                    }
                     hits.push_back(o);
                 }
             }
@@ -74,11 +82,11 @@ static inline void check_collision_in_axis(GameObject *object, float move, int a
     }
 };
 
-bool NetworkObject::can_collide(const NetworkObject *other) const
+int NetworkObject::can_collide(const NetworkObject *other) const
 {
     // if (other->id == this->id)
     //     return false;
-    return false;
+    return 0;
 }
 
 void NetworkObject::gather_collision_candidates(Game *game, const BBox &sweepBox, std::vector<GameObject *> &out)
@@ -92,7 +100,7 @@ void NetworkObject::gather_collision_candidates(Game *game, const BBox &sweepBox
     }
     for (auto *o : game->game_objects)
     {
-        if (can_collide(o))
+        if (can_collide(o) > 0)
         {
             if (o->get_BBox().overlaps(sweepBox))
                 out.push_back(o);
@@ -169,7 +177,6 @@ Trace GameObject::hit(Ray2D ray) const
 
 void NetworkObject::init()
 {
-    id = dist(mt);
 }
 
 void NetworkObject::send(Connection *connection) const

@@ -5,7 +5,6 @@
 #include "Raycast.hpp"
 
 #include <glm/glm.hpp>
-
 #include <string>
 #include <list>
 #include <random>
@@ -26,7 +25,10 @@ enum class Message : uint8_t
 
 struct Game
 {
-    // for server
+    std::mt19937 mt{0x15466666}; // used for spawning players
+    std::uniform_int_distribution<uint32_t> dist{1u, 0xFFFFFFFFu};
+    uint32_t next_player_number = 1; // used for naming players
+
     std::list<GameObject> static_obstacles;  // the collision box should not be sync, instead generated from the scene on both server and client (if the client needs it)
     std::list<NetworkObject *> game_objects; // the dynamic game object sync to from server to client
     BVH bvh;
@@ -38,6 +40,7 @@ struct Game
         O *obj = new O();
         // NetworkObject *no = static_cast<NetworkObject *>(obj);
         game_objects.push_back(obj);
+        obj->id = dist(mt);
         obj->init();
         return obj;
     }
@@ -49,11 +52,16 @@ struct Game
     ~Game();
     // state update function:
     void update(float elapsed);
-
-    Trace check_collision(GameObject *obj);
+    void init_player_spawn_info(Player *player);
 
     // constants:
     // the update rate on the server:
+
+    inline static glm::vec2 SpawnPos[4] = {glm::vec2(-10, -10),
+                                           glm::vec2(10, 10),
+                                           glm::vec2(-10, 10),
+                                           glm::vec2(10, -10)};
+
     inline static constexpr float Tick = 1.0f / 30.0f;
 
     // player constants:

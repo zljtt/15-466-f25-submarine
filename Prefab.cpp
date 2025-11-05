@@ -20,6 +20,9 @@ Load<Prefab> prefab_player(LoadTagLate, []() -> Prefab const *
 Load<Prefab> prefab_torpedo(LoadTagLate, []() -> Prefab const *
                             { return new Prefab("Torpedo"); });
 
+Load<Prefab> prefab_flag(LoadTagLate, []() -> Prefab const *
+                         { return new Prefab("Torpedo"); });
+
 Scene::Drawable *Prefab::create_drawable(Scene &scene, glm::vec3 pos, glm::vec3 scale, glm::quat rotation) const
 {
     // create transform

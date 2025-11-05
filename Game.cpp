@@ -15,6 +15,8 @@
 
 Game::Game()
 {
+    auto flag = spawn_object<Flag>();
+    flag->position = glm::vec2(0, 0);
 }
 
 Game::~Game()
@@ -23,6 +25,13 @@ Game::~Game()
     {
         free(obj);
     }
+}
+
+void Game::init_player_spawn_info(Player *player)
+{
+    player->data.spawn_pos = SpawnPos[next_player_number];
+    player->position = SpawnPos[next_player_number];
+    next_player_number++;
 }
 
 void Game::remove_object(uint32_t id)
@@ -73,6 +82,8 @@ void Game::send_state_message(Connection *connection_, Player *connection_player
             continue;
         obj->send(&connection);
     }
+
+    connection_player->data.send(&connection);
 
     // compute the message size and patch into the message header:
     uint32_t size = uint32_t(connection.send_buffer.size() - mark);

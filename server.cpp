@@ -99,7 +99,10 @@ int main(int argc, char **argv)
 					//client connected:
 
 					//create some player info for them:
-					connection_to_player.emplace(c, game.spawn_object<Player>());
+                    auto player = game.spawn_object<Player>();
+                    game.init_player_spawn_info(player);
+					connection_to_player.emplace(c, player);
+                    
 
 				} else if (evt == Connection::OnClose) {
 					//client disconnected:

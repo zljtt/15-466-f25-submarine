@@ -133,8 +133,8 @@ struct Player : NetworkObject
     void update_weapon(float elapsed, Game *game);
     void update_movement(float elapsed, Game *game, glm::vec2 control);
     void update_win_lose(float elapsed, Game *game);
-    void take_damage(float damage, GameObject *source);
-    void die(Game *game);
+    void take_damage(Game *game, float damage, GameObject *source);
+    void die(Game *game, GameObject *source);
 };
 
 struct Torpedo : NetworkObject

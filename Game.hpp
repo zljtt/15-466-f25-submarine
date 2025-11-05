@@ -27,12 +27,14 @@ struct Game
 {
     std::mt19937 mt{0x15466666}; // used for spawning players
     std::uniform_int_distribution<uint32_t> dist{1u, 0xFFFFFFFFu};
+
     uint32_t next_player_number = 1; // used for naming players
 
     std::list<GameObject> static_obstacles;  // the collision box should not be sync, instead generated from the scene on both server and client (if the client needs it)
     std::list<NetworkObject *> game_objects; // the dynamic game object sync to from server to client
     BVH bvh;
 
+    float flag_spawn_timer = 0;
     template <typename O>
     O *spawn_object()
     {
@@ -43,6 +45,23 @@ struct Game
         obj->id = dist(mt);
         obj->init();
         return obj;
+    }
+
+    template <typename O>
+    std::vector<O *> get_objects()
+    {
+        static_assert(std::is_base_of_v<NetworkObject, O>, "Can only get network game object");
+        std::vector<O *> ret;
+        ret.clear();
+        for (auto obj : game_objects)
+        {
+            O *no = dynamic_cast<O *>(obj);
+            if (no)
+            {
+                ret.push_back(no);
+            }
+        }
+        return ret;
     }
     /**
      * Don't call this to remove object, instead mark the object as deleted
@@ -63,6 +82,10 @@ struct Game
                                            glm::vec2(10, -10)};
 
     inline static constexpr float Tick = 1.0f / 30.0f;
+
+    inline static constexpr float FlagSpawnCooldown = 10;
+    inline static const glm::vec2 FlagSpawnMin = {-2, -2};
+    inline static const glm::vec2 FlagSpawnMax = {2, 2};
 
     // player constants:
     inline static constexpr float PlayerRadius = 0.06f;

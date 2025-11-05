@@ -42,7 +42,8 @@ void Torpedo::update(float elapsed, Game *game)
     auto player_hit = get_colliders<Player>(hits);
     if (player_hit)
     {
-        player_hit->take_damage(TORPEDO_DAMAGE, this);
+        // PLAY SOUND : torpeto hit
+        player_hit->take_damage(game, TORPEDO_DAMAGE, this);
         deleted = true;
     }
 }

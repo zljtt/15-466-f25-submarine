@@ -58,7 +58,20 @@ void Player::update_movement(float elapsed, Game *game, glm::vec2 control)
 {
     glm::vec2 v_desired = normalize(control) * MAX_SPEED;
     glm::vec2 dv = v_desired - velocity;
-    float rate = (glm::dot(dv, v_desired) > 0.0f) ? ACCEL_RATE : DECEL_RATE;
+    float rate = 0;
+    if (glm::dot(dv, v_desired) > 0.0f)
+    {
+        if (velocity.length() <= 0.01f) // and not playing engine start
+        {
+            // PLAY SOUND : engine start
+            // PLAY SOUND : engine noise loop
+        }
+        rate = ACCEL_RATE;
+    }
+    else
+    {
+        rate = DECEL_RATE;
+    }
     // lerp velocity
     float dv_len = glm::length(dv);
     if (dv_len > 1e-6f)
@@ -83,22 +96,29 @@ void Player::update_movement(float elapsed, Game *game, glm::vec2 control)
     if (delta.x < -1e-6f)
         data.player_facing = false;
 
+    if (delta.length() <= 0.01f) // and not playing engine stop
+    {
+        // PLAY SOUND : engine stop
+        // PLAY SOUND : stop playing engine noise loop
+    }
+
     auto hits = move_with_collision(game, delta);
 
     if (hits.size() > 0)
     {
         // if hit flag
         auto flag = get_colliders<Flag>(hits);
-        if (flag)
+        if (flag && !data.has_flag)
         {
             data.has_flag = true;
             flag->deleted = true;
+            // UI NOTIFY : flag captured by player
         }
         // if hit obstacle
         auto obstacle = get_colliders(hits, ObjectType::Obstacle);
         if (obstacle)
         {
-            take_damage(COLLISION_DAMAGAE, obstacle);
+            take_damage(game, COLLISION_DAMAGAE, obstacle);
             velocity = glm::vec2(0, 0);
         }
     }
@@ -126,17 +146,14 @@ void Player::update_weapon(float elapsed, Game *game)
 
 void Player::update_win_lose(float elapsed, Game *game)
 {
-    if (data.hp < 0)
-    {
-        die(game);
-        return;
-    }
 
     if (glm::distance(position, data.spawn_pos) < 5)
     {
         // win
         if (data.has_flag)
         {
+            // PLAY SOUND : get point
+            // UI NOTIFY : get point
             std::cout << "Player " << id << " collect a flag\n";
             data.flag_count++;
             data.has_flag = false;
@@ -145,17 +162,25 @@ void Player::update_win_lose(float elapsed, Game *game)
     }
 }
 
-void Player::take_damage(float damage, GameObject *source)
+void Player::take_damage(Game *game, float damage, GameObject *source)
 {
+    // PLAY SOUND : take damage
     std::cout << "Player " << id << " take " << damage << " damage from " << int(source->type) << "\n";
     data.hp -= damage;
+    if (data.hp < 0)
+    {
+        die(game, source);
+        return;
+    }
 }
 
-void Player::die(Game *game)
+void Player::die(Game *game, GameObject *source)
 {
     std::cout << "Player " << id << " die\n";
+    // UI NOTIDY to killer : player killed
     if (data.has_flag)
     {
+        // UI NOTIFY to others : flag droped
         // drop flag
         auto flag = game->spawn_object<Flag>();
         flag->position = position;

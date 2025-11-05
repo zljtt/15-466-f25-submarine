@@ -15,8 +15,6 @@
 
 Game::Game()
 {
-    auto flag = spawn_object<Flag>();
-    flag->position = glm::vec2(0, 0);
 }
 
 Game::~Game()
@@ -52,6 +50,28 @@ void Game::remove_object(uint32_t id)
 
 void Game::update(float elapsed)
 {
+    // spawn flag
+    auto flags = get_objects<Flag>();
+    auto players = get_objects<Player>();
+    bool has_flag = false;
+    for (auto p : players)
+        if (p->data.has_flag)
+            has_flag = true;
+    if (flags.size() == 0 && !has_flag)
+    {
+        flag_spawn_timer -= elapsed;
+        if (flag_spawn_timer < 0)
+        {
+            // PLAY SOUND : new flag spawned
+            // UI NOTIFY : new flag spawned
+            auto flag = spawn_object<Flag>();
+            std::uniform_real_distribution<float> randx(std::min(FlagSpawnMin.x, FlagSpawnMax.x), std::max(FlagSpawnMin.x, FlagSpawnMax.x));
+            std::uniform_real_distribution<float> randy(std::min(FlagSpawnMin.y, FlagSpawnMax.y), std::max(FlagSpawnMin.y, FlagSpawnMax.y));
+            flag->position = glm::vec2(randx(mt), randy(mt));
+            flag_spawn_timer = FlagSpawnCooldown;
+        }
+    }
+
     for (NetworkObject *obj : game_objects)
     {
         obj->update(elapsed, this);

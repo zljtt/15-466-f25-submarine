@@ -53,7 +53,7 @@ static GLuint load_texture_from_png(const std::string &path)
 Load<GLuint> tex_obstacle(LoadTagDefault, []() -> GLuint const *
                           {
     // GLuint t = load_texture_from_png(data_path("obstacle_basecolor.png"));
-    GLuint t = load_texture_from_png(data_path("rock_basecolor.png"));
+    GLuint t = load_texture_from_png(data_path("rock_material_basecolor_2.png"));
 
     return new GLuint(t); });
 

@@ -66,7 +66,6 @@ void Game::update(float elapsed)
             // PLAY SOUND : new flag spawned
             flag->add_sound_cue(static_cast<uint8_t>(SoundCues::JustSpawned));
             // UI NOTIFY : new flag spawned
-            auto flag = spawn_object<Flag>();
 
             std::uniform_real_distribution<float> randx(std::min(FlagSpawnMin.x, FlagSpawnMax.x), std::max(FlagSpawnMin.x, FlagSpawnMax.x));
             std::uniform_real_distribution<float> randy(std::min(FlagSpawnMin.y, FlagSpawnMax.y), std::max(FlagSpawnMin.y, FlagSpawnMax.y));

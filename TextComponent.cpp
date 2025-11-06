@@ -16,17 +16,20 @@ TextRenderer::TextRenderer(const char *filename, int fsize)
     // copied and modified base on
     // https://github.com/harfbuzz/harfbuzz-tutorial/blob/master/hello-harfbuzz-opentype.c
     FT_Error ft_error;
-    if ((ft_error = FT_Init_FreeType(&ft_library)))
+    ft_error = FT_Init_FreeType(&ft_library);
+    if ((ft_error))
     {
         std::cout << "free type lib error" << "\n";
         abort();
     }
-    if ((ft_error = FT_New_Face(ft_library, filename, 0, &ft_face)))
+    ft_error = FT_New_Face(ft_library, filename, 0, &ft_face);
+    if ((ft_error))
     {
         std::cout << "create new face error " << "\n";
         abort();
     }
-    if ((ft_error = FT_Set_Char_Size(ft_face, fsize * 64, fsize * 64, 0, 0)))
+    ft_error = FT_Set_Char_Size(ft_face, fsize * 64, fsize * 64, 0, 0);
+    if ((ft_error))
     {
         std::cout << "set char size error " << "\n";
         abort();

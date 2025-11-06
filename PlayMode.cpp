@@ -278,7 +278,7 @@ void PlayMode::update_ui(float elapsed)
             text_overlays[0].set_text(pk, data->second.has_flag ? "⚑" : "");
 
             glm::vec2 pos = 2.0f * world_to_screen(glm::vec3(player.position, 0));
-            text_overlays[0].move_text(pk, pos[0] - 20.0f, pos[1] + 90.0f);
+            text_overlays[0].move_text(pk, (int)pos[0] - 20, (int)pos[1] + 90);
         }
     }
 }

@@ -7,6 +7,7 @@
 #include "Mesh.hpp"
 #include "Load.hpp"
 #include "Prefab.hpp"
+#include "TextEngine.hpp"
 
 #include "LitColorTextureProgram.hpp"
 
@@ -84,6 +85,8 @@ Load<Scene> prototype_scene(LoadTagDefault, []() -> Scene const *
     };
     return new Scene(data_path("prototype.scene"), on_drawable); });
 
+static int font_id = -1;
+
 PlayMode::PlayMode(Client &client_) : scene(*prototype_scene), radar(this), client(client_)
 {
     // get pointer to camera for convenience:
@@ -100,6 +103,13 @@ PlayMode::PlayMode(Client &client_) : scene(*prototype_scene), radar(this), clie
     };
     Scene(data_path("prototype.scene"), on_drawable);
     bvh.build(std::move(obstacles));
+
+    // create TextEngine and load a font
+    if (!text_engine) text_engine = std::make_unique<TextEngine>();
+    if (font_id == -1) {
+        auto path = "DejaVuSans.ttf";
+        font_id = text_engine->load_font(data_path(path), 24);
+    }
 }
 
 PlayMode::~PlayMode()
@@ -377,6 +387,22 @@ void PlayMode::draw_overlay(glm::uvec2 const &drawable_size)
     hud.draw(spawn + glm::vec3(0, -5, 0), spawn + glm::vec3(0, 5, 0), glm::u8vec4(0, 255, 0, 255));
     // draw radar
     radar.render(hud);
+
+    // draw health
+    if (font_id >= 0 && local_player) {
+        GLint vp[4];
+        glGetIntegerv(GL_VIEWPORT, vp);
+        float win_w = float(vp[2]);
+        float win_h = float(vp[3]);
+
+        std::string health_text = "Health: " + std::to_string(player_data.hp);
+
+        // Center the text
+        float text_x = win_w / 2.0f; // tweak offset to roughly center
+        float text_y = win_h / 2.0f;
+
+        text_engine->render_text(font_id, health_text, text_x, text_y);
+    }
 
     // auto draw_point = [&](glm::vec3 p, Trace hit)
     // {

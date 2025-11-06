@@ -187,6 +187,7 @@ const common_names = [
     maek.CPP('Torpedo.cpp'),
     maek.CPP('Prefab.cpp'),
     maek.CPP('LitColorTextureProgram.cpp'),
+    maek.CPP('TextEngine.cpp'),
 
     maek.CPP('hex_dump.cpp')
 ];

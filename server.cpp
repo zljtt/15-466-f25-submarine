@@ -142,11 +142,17 @@ int main(int argc, char **argv)
             {
                 game.send_state_message(c, player);
             }
+
             game.game_objects.erase(
                 std::remove_if(game.game_objects.begin(), game.game_objects.end(),
                                [](auto &obj)
                                { return obj->deleted; }),
                 game.game_objects.end());
+            
+            //reset sound_cue bits so no sound events occur it there are no sound events
+            for(auto &g : game.game_objects){
+                g->sound_cues = 0;
+            }
         }
 
         return 0;

@@ -61,10 +61,11 @@ void Game::update(float elapsed)
     {
         flag_spawn_timer -= elapsed;
         if (flag_spawn_timer < 0)
-        {
-            // PLAY SOUND : new flag spawned
-            // UI NOTIFY : new flag spawned
+        {             
             auto flag = spawn_object<Flag>();
+            // PLAY SOUND : new flag spawned
+            flag->add_sound_cue(static_cast<uint8_t>(SoundCues::JustSpawned));
+            // UI NOTIFY : new flag spawned
             std::uniform_real_distribution<float> randx(std::min(FlagSpawnMin.x, FlagSpawnMax.x), std::max(FlagSpawnMin.x, FlagSpawnMax.x));
             std::uniform_real_distribution<float> randy(std::min(FlagSpawnMin.y, FlagSpawnMax.y), std::max(FlagSpawnMin.y, FlagSpawnMax.y));
             flag->position = glm::vec2(randx(mt), randy(mt));
@@ -74,7 +75,7 @@ void Game::update(float elapsed)
 
     for (NetworkObject *obj : game_objects)
     {
-        obj->update(elapsed, this);
+        obj->update(elapsed, this);        
     }
 }
 
@@ -100,6 +101,7 @@ void Game::send_state_message(Connection *connection_, Player *connection_player
     {
         if (obj == connection_player)
             continue;
+        
         obj->send(&connection);
     }
 
@@ -111,3 +113,6 @@ void Game::send_state_message(Connection *connection_, Player *connection_player
     connection.send_buffer[mark - 2] = uint8_t(size >> 8);
     connection.send_buffer[mark - 1] = uint8_t(size >> 16);
 }
+
+
+

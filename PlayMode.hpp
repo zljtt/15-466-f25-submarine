@@ -5,6 +5,7 @@
 #include "Connection.hpp"
 #include "Mesh.hpp"
 #include "Scene.hpp"
+#include "Sound.hpp"
 #include "Prefab.hpp"
 #include "Load.hpp"
 #include "Raycast.hpp"
@@ -31,6 +32,7 @@ struct PlayMode : Mode
     void update_connection(float elapsed);
     void update_radar(float elapsed);
     void update_camera(float elapsed);
+    void update_sound(float elapsed);
     void update_spotlight(float elapsed);
     virtual void draw(glm::uvec2 const &drawable_size) override;
 
@@ -38,6 +40,30 @@ struct PlayMode : Mode
     Scene::Camera *camera = nullptr;
     std::unordered_map<uint32_t, Scene::Drawable *> network_drawables;
     Scene scene;
+
+    //sounds
+
+
+    std::unordered_map<uint32_t, std::shared_ptr<Sound::PlayingSample>> sub_moving;
+    
+    std::shared_ptr< Sound::PlayingSample > sub_start;
+    std::shared_ptr< Sound::PlayingSample > sub_stop;
+    std::shared_ptr< Sound::PlayingSample > flag_spawned;
+    std::shared_ptr< Sound::PlayingSample > sub_hit;
+    std::shared_ptr< Sound::PlayingSample > rad_scan;
+    std::shared_ptr< Sound::PlayingSample > rad_detect;
+
+    //helper for 
+    bool toPlay(uint8_t sc1, SoundCues sc2){
+        return sc1 & (uint8_t)sc2;
+    }
+
+    //client side function to play sound based on sound_cues
+    void execute_network_soundcues(ObjectType type, uint8_t sc, glm::vec3 pos,uint32_t id);
+
+
+
+
 
     NetworkObject *local_player;
     // std::list<GameObject> local_obstacles;

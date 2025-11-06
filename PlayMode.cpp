@@ -7,6 +7,7 @@
 #include "Mesh.hpp"
 #include "Load.hpp"
 #include "Prefab.hpp"
+#include "Sound.hpp"
 
 #include "LitColorTextureProgram.hpp"
 
@@ -84,6 +85,10 @@ Load<Scene> prototype_scene(LoadTagDefault, []() -> Scene const *
     };
     return new Scene(data_path("prototype.scene"), on_drawable); });
 
+Load< Sound::Sample > Submarine_Moving(LoadTagEarly, []() -> Sound::Sample const * {
+	return new Sound::Sample(data_path("sub_moving.wav"));
+});
+
 PlayMode::PlayMode(Client &client_) : scene(*prototype_scene), radar(this), client(client_)
 {
     // get pointer to camera for convenience:
@@ -100,6 +105,11 @@ PlayMode::PlayMode(Client &client_) : scene(*prototype_scene), radar(this), clie
     };
     Scene(data_path("prototype.scene"), on_drawable);
     bvh.build(std::move(obstacles));
+
+
+    //init sound
+    Sound::stop_all_samples();
+    
 }
 
 PlayMode::~PlayMode()
@@ -191,12 +201,34 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
     return false;
 }
 
+void PlayMode::execute_network_soundcues(ObjectType type, uint8_t sc,glm::vec3 pos,uint32_t id){
+    if(type == ObjectType::Player){
+        if(toPlay(sc, SoundCues::Start)){
+            std::cout<<"start engine"<<id<<std::endl;
+            if(sub_moving.find(id) == sub_moving.end())
+                sub_moving[id] = Sound::loop_3D(*Submarine_Moving, 0.0f, pos, 10.0f);           
+            sub_moving[id]->set_volume(1.0f);           
+        }
+        if(toPlay(sc, SoundCues::Stop)){
+            std::cout<<"stop engine"<<id<<std::endl;
+            sub_moving[id]->set_volume(0.0f);
+        }
+        if(toPlay(sc, SoundCues::Hit)){
+            
+        }
+        if(toPlay(sc, SoundCues::GetPoint)){
+            
+        }
+    }
+}
+
 void PlayMode::update(float elapsed)
 {
     update_control(elapsed);
     update_connection(elapsed);
     update_radar(elapsed);
     update_camera(elapsed);
+    update_sound(elapsed);
     update_spotlight(elapsed);
     radar.update(elapsed);
 }
@@ -254,6 +286,33 @@ void PlayMode::update_camera(float elapsed)
 {
     glm::vec2 local_pos = network_drawables[local_player->id]->transform->position;
     camera->transform->position = glm::vec3(local_pos.x, local_pos.y, camera->transform->position.z);
+}
+
+void PlayMode::update_sound(float elapsed)
+{   
+    //go through all the network objects to see which has a sound to play
+    
+    for(auto &netObj: network_objects){
+        if(netObj.sound_cues != 0){
+            execute_network_soundcues(netObj.type, netObj.sound_cues, glm::vec3(netObj.position, 0), netObj.id);
+            //clear the sound_cues
+            netObj.sound_cues = 0;
+        }           
+    }
+    //change the position of submarine moving sound
+    for (auto it = sub_moving.begin(); it != sub_moving.end(); ) {
+        uint32_t id = it->first;
+        //if id doesn't exist in players, it's removed
+        if(network_drawables.find(id) == network_drawables.end()){
+            it = sub_moving.erase(it);
+        }
+        else{
+            glm::vec3 pos = network_drawables[id]->transform->position;
+            it->second->set_position(pos);
+            //std::cout<<"here"<<std::endl;
+            it++;
+        }
+    }
 }
 
 void PlayMode::update_spotlight(float elapsed)
@@ -434,8 +493,12 @@ bool PlayMode::recv_state_message(Connection *connection_)
     read(&network_objects_count);
     for (uint8_t i = 0; i < network_objects_count; ++i)
     {
+        
         network_objects.emplace_back();
         NetworkObject &obj = network_objects.back();
+        if(obj.sound_cues != 0){
+            std::cout<<"what the fuck"<<std::endl;
+        };
         obj.receive(&at, recv_buffer);
         // find local player
         if (i == 0)

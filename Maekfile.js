@@ -150,11 +150,9 @@ if (maek.OS === 'windows') {
 // objFileBase (optional): base name object file to produce (if not supplied, set to options.objDir + '/' + cppFile without the extension)
 //returns objFile: objFileBase + a platform-dependant suffix ('.o' or '.obj')
 const client_names = [
-    maek.CPP('client.cpp'),
+    maek.CPP('client.cpp')
     //maek.CPP('ColorTextureProgram.cpp'),  //not used right now, but you might want it
-    maek.CPP('Sound.cpp'),
-    maek.CPP('load_wav.cpp'),
-    maek.CPP('load_opus.cpp')
+
 
 ];
 
@@ -163,6 +161,9 @@ const server_names = [
 ];
 
 const common_names = [
+    maek.CPP('Sound.cpp'),
+    maek.CPP('load_wav.cpp'),
+    maek.CPP('load_opus.cpp'),
     maek.CPP('Game.cpp'),
     maek.CPP('data_path.cpp'),
     maek.CPP('PathFont.cpp'),

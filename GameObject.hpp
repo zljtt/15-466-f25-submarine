@@ -3,6 +3,7 @@
 #include "BBox.hpp"
 #include "Raycast.hpp"
 
+#include <iostream>
 #include <glm/glm.hpp>
 #include <string>
 #include <list>
@@ -57,6 +58,21 @@ struct NetworkObject : GameObject
     // common
     uint32_t id;
     glm::vec2 velocity = glm::vec2(0.0f, 0.0f);
+
+    
+
+    uint8_t sound_cues = 0;
+
+
+    //server side function to add a cue to send
+    void add_sound_cue(uint8_t s){
+        std::cout<<"adding sound cue"<<static_cast<int>(s)<<"to"<< static_cast<int>(sound_cues)<<std::endl;
+        sound_cues |= s;
+        std::cout<<"now " << id<< " has "<<static_cast<int>(sound_cues)<<std::endl;
+    }
+
+
+
 
     // server only, set to true to mark this object as deleted
     // it will be deleted at the end of this frame
@@ -122,6 +138,8 @@ struct Player : NetworkObject
         bool has_flag = false;
         int flag_count = 0;
         glm::vec2 spawn_pos;
+
+        bool engineStarted = false;
 
         void send(Connection *connection) const;
         void receive(uint32_t *at, std::vector<uint8_t> &recv_buffer);

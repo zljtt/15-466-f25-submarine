@@ -61,11 +61,14 @@ void Player::update_movement(float elapsed, Game *game, glm::vec2 control)
     float rate = 0;
     if (glm::dot(dv, v_desired) > 0.0f)
     {
-        if (velocity.length() <= 0.01f) // and not playing engine start
+        if (glm::length(control) >= 0.01f && !data.engineStarted) // and not playing engine start
         {
+            data.engineStarted = true;
             // PLAY SOUND : engine start
             // PLAY SOUND : engine noise loop
+            add_sound_cue(static_cast<uint8_t>(SoundCues::Start));
         }
+
         rate = ACCEL_RATE;
     }
     else
@@ -96,10 +99,12 @@ void Player::update_movement(float elapsed, Game *game, glm::vec2 control)
     if (delta.x < -1e-6f)
         data.player_facing = false;
 
-    if (delta.length() <= 0.01f) // and not playing engine stop
+    if (glm::length(control) <= 0.01f && data.engineStarted) // and not playing engine stop
     {
+        data.engineStarted = false;
         // PLAY SOUND : engine stop
         // PLAY SOUND : stop playing engine noise loop
+        add_sound_cue(static_cast<uint8_t>(SoundCues::Stop));
     }
 
     auto hits = move_with_collision(game, delta);
@@ -153,6 +158,7 @@ void Player::update_win_lose(float elapsed, Game *game)
         if (data.has_flag)
         {
             // PLAY SOUND : get point
+            add_sound_cue(static_cast<uint8_t>(SoundCues::GetPoint));
             // UI NOTIFY : get point
             std::cout << "Player " << id << " collect a flag\n";
             data.flag_count++;
@@ -165,6 +171,7 @@ void Player::update_win_lose(float elapsed, Game *game)
 void Player::take_damage(Game *game, float damage, GameObject *source)
 {
     // PLAY SOUND : take damage
+    add_sound_cue(static_cast<uint8_t>(SoundCues::Hit));
     std::cout << "Player " << id << " take " << damage << " damage from " << int(source->type) << "\n";
     data.hp -= damage;
     if (data.hp < 0)

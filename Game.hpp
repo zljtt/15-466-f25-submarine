@@ -3,6 +3,7 @@
 #include "Scene.hpp"
 #include "GameObject.hpp"
 #include "Raycast.hpp"
+#include "Sound.hpp"
 
 #include <glm/glm.hpp>
 #include <string>
@@ -23,6 +24,14 @@ enum class Message : uint8_t
     //...
 };
 
+enum class SoundCues : uint8_t {
+    Start = 1 << 0,
+    Stop = 1 << 1,
+    Hit = 1 << 2,
+    JustSpawned = 1 << 3,
+    GetPoint = 1 << 4
+};
+
 struct Game
 {
     std::mt19937 mt{0x15466666}; // used for spawning players
@@ -33,6 +42,8 @@ struct Game
     std::list<GameObject> static_obstacles;  // the collision box should not be sync, instead generated from the scene on both server and client (if the client needs it)
     std::list<NetworkObject *> game_objects; // the dynamic game object sync to from server to client
     BVH bvh;
+
+    
 
     float flag_spawn_timer = 0;
     template <typename O>
@@ -96,4 +107,6 @@ struct Game
     // send game state.
     //   Will move "connection_player" to the front of the front of the sent list.
     void send_state_message(Connection *connection, Player *connection_player = nullptr) const;
+    
+
 };

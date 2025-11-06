@@ -3,30 +3,36 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 
-std::unique_ptr<TextEngine> text_engine = nullptr;
-
-
 TextEngine::TextEngine() {}
-TextEngine::~TextEngine() {
+TextEngine::~TextEngine()
+{
     // destroy fonts
-    for (auto &f : fonts) {
-        if (f.hb_font) hb_font_destroy(f.hb_font);
-        if (f.face) FT_Done_Face(f.face);
+    for (auto &f : fonts)
+    {
+        if (f.hb_font)
+            hb_font_destroy(f.hb_font);
+        if (f.face)
+            FT_Done_Face(f.face);
     }
-    if (ft_lib) FT_Done_FreeType(ft_lib);
+    if (ft_lib)
+        FT_Done_FreeType(ft_lib);
 }
 
-bool TextEngine::init() {
-    if (FT_Init_FreeType(&ft_lib)) {
+bool TextEngine::init()
+{
+    if (FT_Init_FreeType(&ft_lib))
+    {
         std::cerr << "Freetype init failed\n";
         return false;
     }
     return true;
 }
 
-int TextEngine::load_font(std::string const &font_path, int pixel_size) {
+int TextEngine::load_font(std::string const &font_path, int pixel_size)
+{
     FT_Face face = nullptr;
-    if (FT_New_Face(ft_lib, font_path.c_str(), 0, &face)) {
+    if (FT_New_Face(ft_lib, font_path.c_str(), 0, &face))
+    {
         std::cerr << "Failed to load font: " << font_path << std::endl;
         return -1;
     }
@@ -41,8 +47,10 @@ int TextEngine::load_font(std::string const &font_path, int pixel_size) {
     return int(fonts.size() - 1);
 }
 
-void TextEngine::render_text(int font_id, std::string const &utf8, float x, float y) {
-    if (font_id < 0 || font_id >= (int)fonts.size()) return;
+void TextEngine::render_text(int font_id, std::string const &utf8, float x, float y)
+{
+    if (font_id < 0 || font_id >= (int)fonts.size())
+        return;
     auto &f = fonts[font_id];
 
     // HarfBuzz shaping:
@@ -84,8 +92,10 @@ void TextEngine::render_text(int font_id, std::string const &utf8, float x, floa
     // Make sure blending is enabled for alpha mask text, and use typical alpha blending
     GLboolean depth_test_was = glIsEnabled(GL_DEPTH_TEST);
     GLboolean blend_was = glIsEnabled(GL_BLEND);
-    if (depth_test_was) glDisable(GL_DEPTH_TEST);
-    if (!blend_was) glEnable(GL_BLEND);
+    if (depth_test_was)
+        glDisable(GL_DEPTH_TEST);
+    if (!blend_was)
+        glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Set a constant vertex color (white) for the Color_vec4 attribute so glyphs are white:
@@ -103,16 +113,19 @@ void TextEngine::render_text(int font_id, std::string const &utf8, float x, floa
     // Ensure single-channel uploads are tightly packed:
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-    for (unsigned int i = 0; i < len; ++i) {
+    for (unsigned int i = 0; i < len; ++i)
+    {
         uint32_t gid = info[i].codepoint;
 
         // Load and render glyph to FreeType bitmap
-        if (FT_Load_Glyph(f.face, gid, FT_LOAD_RENDER)) continue;
+        if (FT_Load_Glyph(f.face, gid, FT_LOAD_RENDER))
+            continue;
         FT_GlyphSlot g = f.face->glyph;
 
         int bmp_w = g->bitmap.width;
         int bmp_h = g->bitmap.rows;
-        if (bmp_w == 0 || bmp_h == 0) {
+        if (bmp_w == 0 || bmp_h == 0)
+        {
             // advance only (space or empty glyph)
             pen_x += pos[i].x_advance / 64.0f;
             pen_y += pos[i].y_advance / 64.0f;
@@ -131,7 +144,7 @@ void TextEngine::render_text(int font_id, std::string const &utf8, float x, floa
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
         // swizzle: R->A, RGB = 1.0 (white). So sampled RGBA = (1,1,1, R)
-        GLint swizzleMask[4] = { GL_ONE, GL_ONE, GL_ONE, GL_RED };
+        GLint swizzleMask[4] = {GL_ONE, GL_ONE, GL_ONE, GL_RED};
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask);
 
         // compute quad position in window pixel coordinates:
@@ -142,16 +155,14 @@ void TextEngine::render_text(int font_id, std::string const &utf8, float x, floa
         float h = (float)g->bitmap.rows;
 
         float verts[6][4] = {
-            {gx,     gy - h, 0.0f, 0.0f},
+            {gx, gy - h, 0.0f, 0.0f},
             {gx + w, gy - h, 1.0f, 0.0f},
-            {gx + w, gy,     1.0f, 1.0f},
+            {gx + w, gy, 1.0f, 1.0f},
 
-            {gx,     gy - h, 0.0f, 0.0f},
-            {gx + w, gy,     1.0f, 1.0f},
-            {gx,     gy,     0.0f, 1.0f},
+            {gx, gy - h, 0.0f, 0.0f},
+            {gx + w, gy, 1.0f, 1.0f},
+            {gx, gy, 0.0f, 1.0f},
         };
-
-
 
         // create VAO/VBO, upload verts:
         GLuint vao = 0, vbo = 0;
@@ -164,12 +175,12 @@ void TextEngine::render_text(int font_id, std::string const &utf8, float x, floa
         // Position_vec4 attribute: provide as 2 floats (x,y); shader will receive vec4(x,y,0,1)
         GLuint pos_loc = lit_color_texture_program->Position_vec4;
         glEnableVertexAttribArray(pos_loc);
-        glVertexAttribPointer(pos_loc, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+        glVertexAttribPointer(pos_loc, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)0);
 
         // TexCoord_vec2 attribute: offset by 2 floats:
         GLuint uv_loc = lit_color_texture_program->TexCoord_vec2;
         glEnableVertexAttribArray(uv_loc);
-        glVertexAttribPointer(uv_loc, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+        glVertexAttribPointer(uv_loc, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)(2 * sizeof(float)));
 
         // Bind the glyph texture to texture unit 0 (shader will sample TEXTURE0)
         glActiveTexture(GL_TEXTURE0);
@@ -194,8 +205,10 @@ void TextEngine::render_text(int font_id, std::string const &utf8, float x, floa
     }
 
     // restore GL state
-    if (!blend_was) glDisable(GL_BLEND);
-    if (depth_test_was) glEnable(GL_DEPTH_TEST);
+    if (!blend_was)
+        glDisable(GL_BLEND);
+    if (depth_test_was)
+        glEnable(GL_DEPTH_TEST);
 
     hb_buffer_destroy(buf);
 }

@@ -10,8 +10,8 @@
 #include <glm/glm.hpp>
 #include "GL.hpp"
 
-
-struct TextEngine {
+struct TextEngine
+{
 public:
     TextEngine();
     ~TextEngine();
@@ -30,20 +30,23 @@ private:
     // FT + HB state:
     FT_Library ft_lib = nullptr;
     // keep faces / hb_font wrappers in simple arrays/maps in implementation
-    struct FontEntry { FT_Face face; hb_font_t *hb_font; int size; std::string path; };
+    struct FontEntry
+    {
+        FT_Face face;
+        hb_font_t *hb_font;
+        int size;
+        std::string path;
+    };
     std::vector<FontEntry> fonts;
 };
 
-struct Glyph {
-    GLuint tex;      // texture ID for this glyph
-    float ax;        // advance (x direction)
-    float ay;        // advance (y direction)
-    float bw;        // bitmap width
-    float bh;        // bitmap height
-    float bl;        // bitmap left bearing
-    float bt;        // bitmap top bearing
+struct Glyph
+{
+    GLuint tex; // texture ID for this glyph
+    float ax;   // advance (x direction)
+    float ay;   // advance (y direction)
+    float bw;   // bitmap width
+    float bh;   // bitmap height
+    float bl;   // bitmap left bearing
+    float bt;   // bitmap top bearing
 };
-
-
-
-extern std::unique_ptr<TextEngine> text_engine;

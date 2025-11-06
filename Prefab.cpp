@@ -21,7 +21,7 @@ Load<Prefab> prefab_torpedo(LoadTagLate, []() -> Prefab const *
                             { return new Prefab("Torpedo"); });
 
 Load<Prefab> prefab_flag(LoadTagLate, []() -> Prefab const *
-                         { return new Prefab("Torpedo"); });
+                         { return new Prefab("Flag"); });
 
 Scene::Drawable *Prefab::create_drawable(Scene &scene, glm::vec3 pos, glm::vec3 scale, glm::quat rotation) const
 {

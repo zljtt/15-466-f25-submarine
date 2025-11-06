@@ -65,9 +65,12 @@ void Game::update(float elapsed)
             // PLAY SOUND : new flag spawned
             // UI NOTIFY : new flag spawned
             auto flag = spawn_object<Flag>();
+
             std::uniform_real_distribution<float> randx(std::min(FlagSpawnMin.x, FlagSpawnMax.x), std::max(FlagSpawnMin.x, FlagSpawnMax.x));
             std::uniform_real_distribution<float> randy(std::min(FlagSpawnMin.y, FlagSpawnMax.y), std::max(FlagSpawnMin.y, FlagSpawnMax.y));
             flag->position = glm::vec2(randx(mt), randy(mt));
+
+            std::cout << "flag spawn at " << flag->position.x << " " << flag->position.y << "\n";
             flag_spawn_timer = FlagSpawnCooldown;
         }
     }
@@ -102,8 +105,13 @@ void Game::send_state_message(Connection *connection_, Player *connection_player
             continue;
         obj->send(&connection);
     }
-
-    connection_player->data.send(&connection);
+    auto players = get_objects<Player>();
+    connection.send(uint8_t(players.size()));
+    for (auto p : players)
+    {
+        connection.send(uint32_t(p->id));
+        p->data.send(&connection);
+    }
 
     // compute the message size and patch into the message header:
     uint32_t size = uint32_t(connection.send_buffer.size() - mark);

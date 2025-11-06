@@ -142,7 +142,7 @@ struct Torpedo : NetworkObject
     Torpedo() {};
     virtual ~Torpedo() {};
     // time till torpedo explode on its own
-    static constexpr float TORPEDO_LIFETIME = 1.0f;
+    static constexpr float TORPEDO_LIFETIME = 3.0f;
     static constexpr float TORPEDO_SPEED = 15.0f;
     static constexpr float TORPEDO_DAMAGE = 30.0f;
 

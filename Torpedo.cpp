@@ -44,6 +44,9 @@ void Torpedo::update(float elapsed, Game *game)
     {
         // PLAY SOUND : torpeto hit
         player_hit->take_damage(game, TORPEDO_DAMAGE, this);
+    }
+    if (hits.size() > 0)
+    {
         deleted = true;
     }
 }

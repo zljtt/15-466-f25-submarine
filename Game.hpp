@@ -48,7 +48,7 @@ struct Game
     }
 
     template <typename O>
-    std::vector<O *> get_objects()
+    std::vector<O *> get_objects() const
     {
         static_assert(std::is_base_of_v<NetworkObject, O>, "Can only get network game object");
         std::vector<O *> ret;
@@ -76,16 +76,16 @@ struct Game
     // constants:
     // the update rate on the server:
 
-    inline static glm::vec2 SpawnPos[4] = {glm::vec2(-10, -10),
-                                           glm::vec2(10, 10),
-                                           glm::vec2(-10, 10),
-                                           glm::vec2(10, -10)};
+    inline static glm::vec2 SpawnPos[4] = {glm::vec2(-60, 180),
+                                           glm::vec2(60, 180),
+                                           glm::vec2(-20, 180),
+                                           glm::vec2(20, 180)};
 
     inline static constexpr float Tick = 1.0f / 30.0f;
 
     inline static constexpr float FlagSpawnCooldown = 10;
-    inline static const glm::vec2 FlagSpawnMin = {-2, -2};
-    inline static const glm::vec2 FlagSpawnMax = {2, 2};
+    inline static const glm::vec2 FlagSpawnMin = {0, 80};
+    inline static const glm::vec2 FlagSpawnMax = {14, 60};
 
     // player constants:
     inline static constexpr float PlayerRadius = 0.06f;

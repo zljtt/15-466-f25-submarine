@@ -10,6 +10,7 @@
 #include "TextEngine.hpp"
 
 #include "LitColorTextureProgram.hpp"
+#include "ColorTextureProgram.hpp"
 
 #include <glm/gtc/type_ptr.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
@@ -19,6 +20,8 @@
 #include <array>
 
 #include "load_save_png.hpp"
+
+const std::string PlayMode::HP = "HP";
 
 static GLuint load_texture_from_png(const std::string &path)
 {
@@ -85,7 +88,18 @@ Load<Scene> prototype_scene(LoadTagDefault, []() -> Scene const *
     };
     return new Scene(data_path("prototype.scene"), on_drawable); });
 
-static int font_id = -1;
+Load<TextRenderer> texts(LoadTagDefault, []() -> TextRenderer const *
+                         {
+	TextRenderer *ret = new TextRenderer(data_path("DejaVuSans.ttf").c_str());
+    ret->init(1280 * 2, 720 * 2,
+        color_texture_program->program,
+        color_texture_program->CLIP_FROM_OBJECT_mat4,
+        color_texture_program->Position_vec4,
+        color_texture_program->Color_vec4,
+        color_texture_program->TexCoord_vec2);
+    return ret; });
+
+// static int font_id = -1;
 
 PlayMode::PlayMode(Client &client_) : scene(*prototype_scene), radar(this), client(client_)
 {
@@ -105,11 +119,17 @@ PlayMode::PlayMode(Client &client_) : scene(*prototype_scene), radar(this), clie
     bvh.build(std::move(obstacles));
 
     // create TextEngine and load a font
-    if (!text_engine) text_engine = std::make_unique<TextEngine>();
-    if (font_id == -1) {
-        auto path = "DejaVuSans.ttf";
-        font_id = text_engine->load_font(data_path(path), 24);
-    }
+    // if (!text_engine)
+    //     text_engine = std::make_unique<TextEngine>();
+    // text_engine->init();
+    // if (font_id == -1)
+    // {
+    //     auto path = "DejaVuSans.ttf";
+    //     font_id = text_engine->load_font(data_path(path), 24);
+    // }
+
+    text_overlays.emplace_back(texts.value, 2560, 1440);
+    text_overlays[0].add_text(HP, "HP: ", 2200, 1300); // HP
 }
 
 PlayMode::~PlayMode()
@@ -208,7 +228,27 @@ void PlayMode::update(float elapsed)
     update_radar(elapsed);
     update_camera(elapsed);
     update_spotlight(elapsed);
-    radar.update(elapsed);
+    update_ui(elapsed);
+}
+
+void PlayMode::update_ui(float elapsed)
+{
+    text_overlays[0].set_text(HP, "HP: " + std::to_string((int)player_data[local_player->id].hp));
+    text_overlays[0].remove_texts([](std::string const &key)
+                                  { return key.rfind("Flag_", 0) == 0; });
+    auto players = get_objects(ObjectType::Player);
+    for (auto &player : players)
+    {
+        auto data = player_data.find(player.id);
+        if (data != player_data.end())
+        {
+            std::string pk = "Flag_" + std::to_string(player.id);
+            text_overlays[0].set_text(pk, data->second.has_flag ? "⚑" : "");
+
+            glm::vec2 pos = 2.0f * world_to_screen(glm::vec3(player.position, 0));
+            text_overlays[0].move_text(pk, pos[0] - 20.0f, pos[1] + 90.0f);
+        }
+    }
 }
 
 void PlayMode::update_control(float elapsed)
@@ -258,6 +298,7 @@ void PlayMode::update_radar(float elapsed)
         radar_timer = Radar::RADAR_INTERVAL;
         radar.scan(local_player, Radar::RADAR_RANGE, Radar::RADAR_RAY_COUNT);
     }
+    radar.update(elapsed);
 }
 
 void PlayMode::update_camera(float elapsed)
@@ -346,7 +387,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
         glm::vec3 spot_light_energy(5.0f, 5.0f, 5.0f);
 
         // glm::vec3 spot_light_dir(1.0f, 0.0f, 0.0f);
-        glm::vec3 spot_light_dir(player_data.player_facing ? 1.0f : -1.0f, 0.0f, 0.0f);
+        glm::vec3 spot_light_dir(player_data[local_player->id].player_facing ? 1.0f : -1.0f, 0.0f, 0.0f);
         spot_light_dir = glm::normalize(spot_light_dir);
         float cos_cutoff = std::cos(cutoff);
 
@@ -382,27 +423,34 @@ void PlayMode::draw_overlay(glm::uvec2 const &drawable_size)
     DrawLines hud(P * V);
 
     // draw spawn point
-    glm::vec3 spawn(player_data.spawn_pos, 0);
+    glm::vec3 spawn(player_data[local_player->id].spawn_pos, 0);
     hud.draw(spawn + glm::vec3(-5, 0, 0), spawn + glm::vec3(5, 0, 0), glm::u8vec4(0, 255, 0, 255));
     hud.draw(spawn + glm::vec3(0, -5, 0), spawn + glm::vec3(0, 5, 0), glm::u8vec4(0, 255, 0, 255));
     // draw radar
     radar.render(hud);
 
-    // draw health
-    if (font_id >= 0 && local_player) {
-        GLint vp[4];
-        glGetIntegerv(GL_VIEWPORT, vp);
-        float win_w = float(vp[2]);
-        float win_h = float(vp[3]);
-
-        std::string health_text = "Health: " + std::to_string(player_data.hp);
-
-        // Center the text
-        float text_x = win_w / 2.0f; // tweak offset to roughly center
-        float text_y = win_h / 2.0f;
-
-        text_engine->render_text(font_id, health_text, text_x, text_y);
+    // render text
+    for (auto text_overlay : text_overlays)
+    {
+        text_overlay.draw(drawable_size);
     }
+
+    // draw health
+    // if (font_id >= 0 && local_player)
+    // {
+    //     GLint vp[4];
+    //     glGetIntegerv(GL_VIEWPORT, vp);
+    //     float win_w = float(vp[2]);
+    //     float win_h = float(vp[3]);
+
+    //     std::string health_text = "Health: " + std::to_string(player_data.hp);
+
+    //     // Center the text
+    //     float text_x = win_w / 2.0f; // tweak offset to roughly center
+    //     float text_y = win_h / 2.0f;
+
+    //     // text_engine->render_text(font_id, health_text, text_x, text_y);
+    // }
 
     // auto draw_point = [&](glm::vec3 p, Trace hit)
     // {
@@ -496,7 +544,16 @@ bool PlayMode::recv_state_message(Connection *connection_)
         }
     }
 
-    player_data.receive(&at, recv_buffer);
+    uint8_t player_data_count;
+    read(&player_data_count);
+    for (uint8_t i = 0; i < player_data_count; ++i)
+    {
+        uint32_t player_id;
+        read(&player_id);
+        Player::PlayerData data;
+        data.receive(&at, recv_buffer);
+        player_data[player_id] = data;
+    }
 
     if (at != size)
     {
@@ -507,4 +564,41 @@ bool PlayMode::recv_state_message(Connection *connection_)
     recv_buffer.erase(recv_buffer.begin(), recv_buffer.begin() + 4 + size);
 
     return true;
+}
+
+glm::vec2 PlayMode::world_to_screen(const glm::vec3 &worldPos) const
+{
+    glm::vec4 clip = camera->make_projection() * camera->make_view() * glm::vec4(worldPos, 1.0f);
+
+    if (clip.w == 0.0f)
+        return glm::vec2(-9999.0f, -9999.0f);
+    glm::vec3 ndc = glm::vec3(clip) / clip.w;
+
+    glm::vec2 screen_size = get_screen_size();
+    float x = (ndc.x * 0.5f + 0.5f) * screen_size[0];
+    // float y = (1.0f - (ndc.y * 0.5f + 0.5f)) * screen_size[1];
+    float y = (ndc.y * 0.5f + 0.5f) * screen_size[1];
+
+    return glm::vec2(x, y);
+}
+
+glm::vec2 PlayMode::get_screen_size() const
+{
+    int w, h;
+    SDL_GetWindowSize(window, &w, &h);
+    return glm::vec2(w, h);
+}
+
+std::vector<NetworkObject> PlayMode::get_objects(ObjectType type) const
+{
+    std::vector<NetworkObject> ret;
+    ret.clear();
+    for (auto &obj : network_objects)
+    {
+        if (obj.type == type)
+        {
+            ret.push_back(obj);
+        }
+    }
+    return ret;
 }

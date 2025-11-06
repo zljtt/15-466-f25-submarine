@@ -86,6 +86,23 @@ glm::mat4 Scene::Camera::make_projection() const
     return glm::infinitePerspective(fovy, aspect, near);
 }
 
+glm::mat4 Scene::Camera::make_view() const
+{
+    glm::mat4x3 w2l = transform->make_world_from_local();
+    glm::mat4 M(
+        glm::vec4(w2l[0], 0.0f),
+        glm::vec4(w2l[1], 0.0f),
+        glm::vec4(w2l[2], 0.0f),
+        glm::vec4(w2l[3], 1.0f));
+    // glm::mat4 world(
+    //     glm::vec4(w2l[0][0], w2l[1][0], w2l[2][0], 0.0f), // X axis
+    //     glm::vec4(w2l[0][1], w2l[1][1], w2l[2][1], 0.0f), // Y axis
+    //     glm::vec4(w2l[0][2], w2l[1][2], w2l[2][2], 0.0f), // Z axis
+    //     glm::vec4(w2l[3][0], w2l[3][1], w2l[3][2], 1.0f)  // translation
+    // );
+    return glm::inverse(M);
+}
+
 //-------------------------
 
 void Scene::draw(Camera const &camera) const

@@ -9,6 +9,7 @@
 #include "Prefab.hpp"
 #include "Sound.hpp"
 #include "TextEngine.hpp"
+#include "GameObject.hpp"
 
 #include "LitColorTextureProgram.hpp"
 #include "ColorTextureProgram.hpp"
@@ -135,6 +136,7 @@ PlayMode::PlayMode(Client &client_) : scene(*prototype_scene), radar(this), clie
 
     text_overlays.emplace_back(texts.value, 2560, 1440);
     text_overlays[0].add_text(HP, "HP: ", 2200, 1300); // HP
+    text_overlays[0].add_text("torpedo_cooldown", "READY", 1100, 650); // torpedo cooldown
 
 
     //init sound
@@ -264,7 +266,14 @@ void PlayMode::update(float elapsed)
 }
 
 void PlayMode::update_ui(float elapsed)
-{
+{   
+    std::string torpedo_text = std::string("READY!!");
+    // torpedo on cooldown, show timer
+    if (player_data[local_player->id].torpedo_timer <= Player::TORPEDO_COOLDOWN) {
+        torpedo_text = std::to_string(player_data[local_player->id].torpedo_timer);
+    }
+    // else torpedo not on cooldown, show READY
+    text_overlays[0].set_text("torpedo_cooldown", torpedo_text);
     text_overlays[0].set_text(HP, "HP: " + std::to_string((int)player_data[local_player->id].hp));
     text_overlays[0].remove_texts([](std::string const &key)
                                   { return key.rfind("Flag_", 0) == 0; });

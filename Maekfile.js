@@ -155,9 +155,13 @@ const client_names = [
     maek.CPP('PlayMode.cpp'),
     maek.CPP('LitColorTextureProgram.cpp'),
     maek.CPP('ColorTextureProgram.cpp'),  //not used right now, but you might want it
-    maek.CPP('TextComponent.cpp'),
-    maek.CPP('TextEngine.cpp')
-
+    maek.CPP('UIRenderer.cpp'),
+    maek.CPP('Sound.cpp'),
+    maek.CPP('load_wav.cpp'),
+    maek.CPP('load_opus.cpp'),
+    maek.CPP('TextEngine.cpp'),
+    maek.CPP('Radar.cpp'),
+    maek.CPP('UI.cpp')
 
 ];
 
@@ -166,9 +170,6 @@ const server_names = [
 ];
 
 const common_names = [
-    maek.CPP('Sound.cpp'),
-    maek.CPP('load_wav.cpp'),
-    maek.CPP('load_opus.cpp'),
     maek.CPP('Game.cpp'),
     maek.CPP('data_path.cpp'),
     maek.CPP('PathFont.cpp'),
@@ -184,7 +185,6 @@ const common_names = [
     maek.CPP('Load.cpp'),
     maek.CPP('Connection.cpp'),
     maek.CPP('GameObject.cpp'),
-    maek.CPP('Radar.cpp'),
     maek.CPP('Raycast.cpp'),
     maek.CPP('BBox.cpp'),
     maek.CPP('Player.cpp'),

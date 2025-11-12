@@ -52,6 +52,7 @@ void Player::update(float elapsed, Game *game)
     controls.up.downs = 0;
     controls.down.downs = 0;
     controls.jump.downs = 0;
+    controls.radar.downs = 0;
 }
 
 void Player::update_movement(float elapsed, Game *game, glm::vec2 control)
@@ -222,6 +223,7 @@ void Player::Controls::send_controls_message(Connection *connection_) const
     send_button(up);
     send_button(down);
     send_button(jump);
+    // send_button(radar);
 }
 
 bool Player::Controls::recv_controls_message(Connection *connection_)
@@ -261,6 +263,7 @@ bool Player::Controls::recv_controls_message(Connection *connection_)
     recv_button(recv_buffer[4 + 2], &up);
     recv_button(recv_buffer[4 + 3], &down);
     recv_button(recv_buffer[4 + 4], &jump);
+    // recv_button(recv_buffer[4 + 5], &radar);
 
     // delete message from buffer:
     recv_buffer.erase(recv_buffer.begin(), recv_buffer.begin() + 4 + size);

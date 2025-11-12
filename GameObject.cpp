@@ -184,11 +184,13 @@ void NetworkObject::send(Connection *connection) const
     connection->send(id);
     connection->send(type);
     connection->send(position);
+    connection->send(velocity);
     connection->send(scale);
     connection->send(deleted);
     connection->send(sound_cues);
-    if(sound_cues != 0){
-        std::cout<<"actually sending sound cue"<<static_cast<int>(sound_cues)<<std::endl;
+    if (sound_cues != 0)
+    {
+        std::cout << "actually sending sound cue" << static_cast<int>(sound_cues) << std::endl;
     }
 };
 
@@ -202,10 +204,12 @@ void NetworkObject::receive(uint32_t *at, std::vector<uint8_t> &recv_buffer)
     read(&id);
     read(&type);
     read(&position);
+    read(&velocity);
     read(&scale);
     read(&deleted);
     read(&sound_cues);
-    if(sound_cues != 0){
-        std::cout<<"actually receiving sound cue"<<static_cast<int>(sound_cues)<<std::endl;
+    if (sound_cues != 0)
+    {
+        // std::cout<<"actually receiving sound cue"<<static_cast<int>(sound_cues)<<std::endl;
     }
 };

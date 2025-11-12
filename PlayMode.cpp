@@ -39,12 +39,11 @@ static GLuint load_texture_from_png(const std::string &path)
                  size.x, size.y, 0,
                  GL_RGBA, GL_UNSIGNED_BYTE, data.data());
 
-    glGenerateMipmap(GL_TEXTURE_2D);
-
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glGenerateMipmap(GL_TEXTURE_2D);
 
     // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -59,6 +58,12 @@ Load<GLuint> tex_obstacle(LoadTagDefault, []() -> GLuint const *
                           {
     // GLuint t = load_texture_from_png(data_path("obstacle_basecolor.png"));
     GLuint t = load_texture_from_png(data_path("rock_material_basecolor_2.png"));
+
+    return new GLuint(t); });
+
+Load<GLuint> tex_radar_result(LoadTagDefault, []() -> GLuint const *
+                              {
+    GLuint t = load_texture_from_png(data_path("radar_spot.png"));
 
     return new GLuint(t); });
 
@@ -90,10 +95,21 @@ Load<Scene> prototype_scene(LoadTagDefault, []() -> Scene const *
     };
     return new Scene(data_path("prototype.scene"), on_drawable); });
 
-Load<TextRenderer> texts(LoadTagDefault, []() -> TextRenderer const *
-                         {
-	TextRenderer *ret = new TextRenderer(data_path("DejaVuSans.ttf").c_str());
-    ret->init(1280 * 2, 720 * 2,
+Load<UIRenderer> ui_texts(LoadTagDefault, []() -> UIRenderer const *
+                          {
+	UIRenderer *ret = new UIRenderer(data_path("DejaVuSans.ttf").c_str(), 16);
+    ret->init(1280, 720,
+        color_texture_program->program,
+        color_texture_program->CLIP_FROM_OBJECT_mat4,
+        color_texture_program->Position_vec4,
+        color_texture_program->Color_vec4,
+        color_texture_program->TexCoord_vec2);
+    return ret; });
+
+Load<UIRenderer> radar_text(LoadTagDefault, []() -> UIRenderer const *
+                            {
+	UIRenderer *ret = new UIRenderer(data_path("DejaVuSans.ttf").c_str(), 24);
+    ret->init(1280, 720,
         color_texture_program->program,
         color_texture_program->CLIP_FROM_OBJECT_mat4,
         color_texture_program->Position_vec4,
@@ -103,9 +119,8 @@ Load<TextRenderer> texts(LoadTagDefault, []() -> TextRenderer const *
 
 // static int font_id = -1;
 
-Load< Sound::Sample > Submarine_Moving(LoadTagEarly, []() -> Sound::Sample const * {
-	return new Sound::Sample(data_path("sub_moving.wav"));
-});
+Load<Sound::Sample> Submarine_Moving(LoadTagEarly, []() -> Sound::Sample const *
+                                     { return new Sound::Sample(data_path("sub_moving.wav")); });
 
 PlayMode::PlayMode(Client &client_) : scene(*prototype_scene), radar(this), client(client_)
 {
@@ -133,15 +148,12 @@ PlayMode::PlayMode(Client &client_) : scene(*prototype_scene), radar(this), clie
     //     auto path = "DejaVuSans.ttf";
     //     font_id = text_engine->load_font(data_path(path), 24);
     // }
+    // int w, h;
+    text_overlays.emplace_back(ui_texts.value); // GUI
 
-    text_overlays.emplace_back(texts.value, 2560, 1440);
-    text_overlays[0].add_text(HP, "HP: ", 2200, 1300); // HP
-    text_overlays[0].add_text("torpedo_cooldown", "READY", 1100, 650); // torpedo cooldown
-
-
-    //init sound
-    Sound::stop_all_samples();
-    
+    // text_overlays[GUI].update_text("test", "test", glm::vec2(500, 400), UIOverlay::BottomLeft);
+    text_overlays.emplace_back(radar_text.value); // RADAR
+    // text_overlays[RADAR].update_image("test", *tex_radar_result, glm::vec2(100, 100), glm::vec2(100, 100));
 }
 
 PlayMode::~PlayMode()
@@ -192,6 +204,12 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
             controls.jump.pressed = true;
             return true;
         }
+        else if (evt.key.key == SDLK_R)
+        {
+            controls.radar.downs += 1;
+            controls.radar.pressed = true;
+            return true;
+        }
     }
     else if (evt.type == SDL_EVENT_KEY_UP)
     {
@@ -220,6 +238,11 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
             controls.jump.pressed = false;
             return true;
         }
+        else if (evt.key.key == SDLK_R)
+        {
+            controls.radar.pressed = false;
+            return true;
+        }
     }
     else if (evt.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
     {
@@ -233,23 +256,27 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
     return false;
 }
 
-void PlayMode::execute_network_soundcues(ObjectType type, uint8_t sc,glm::vec3 pos,uint32_t id){
-    if(type == ObjectType::Player){
-        if(toPlay(sc, SoundCues::Start)){
-            std::cout<<"start engine"<<id<<std::endl;
-            if(sub_moving.find(id) == sub_moving.end())
-                sub_moving[id] = Sound::loop_3D(*Submarine_Moving, 0.0f, pos, 10.0f);           
-            sub_moving[id]->set_volume(1.0f);           
+void PlayMode::execute_network_soundcues(ObjectType type, uint8_t sc, glm::vec3 pos, uint32_t id)
+{
+    if (type == ObjectType::Player)
+    {
+        if (toPlay(sc, SoundCues::Start))
+        {
+            // std::cout << "start engine" << id << std::endl;
+            if (sub_moving.find(id) == sub_moving.end())
+                sub_moving[id] = Sound::loop_3D(*Submarine_Moving, 0.0f, pos, 10.0f);
+            sub_moving[id]->set_volume(1.0f);
         }
-        if(toPlay(sc, SoundCues::Stop)){
-            std::cout<<"stop engine"<<id<<std::endl;
+        if (toPlay(sc, SoundCues::Stop))
+        {
+            // std::cout << "stop engine" << id << std::endl;
             sub_moving[id]->set_volume(0.0f);
         }
-        if(toPlay(sc, SoundCues::Hit)){
-            
+        if (toPlay(sc, SoundCues::Hit))
+        {
         }
-        if(toPlay(sc, SoundCues::GetPoint)){
-            
+        if (toPlay(sc, SoundCues::GetPoint))
+        {
         }
     }
 }
@@ -265,37 +292,15 @@ void PlayMode::update(float elapsed)
     update_ui(elapsed);
 }
 
-void PlayMode::update_ui(float elapsed)
-{   
-    std::string torpedo_text = std::string("READY!!");
-    // torpedo on cooldown, show timer
-    if (player_data[local_player->id].torpedo_timer <= Player::TORPEDO_COOLDOWN) {
-        torpedo_text = std::to_string(player_data[local_player->id].torpedo_timer);
-    }
-    // else torpedo not on cooldown, show READY
-    text_overlays[0].set_text("torpedo_cooldown", torpedo_text);
-    text_overlays[0].set_text(HP, "HP: " + std::to_string((int)player_data[local_player->id].hp));
-    text_overlays[0].remove_texts([](std::string const &key)
-                                  { return key.rfind("Flag_", 0) == 0; });
-    auto players = get_objects(ObjectType::Player);
-    for (auto &player : players)
-    {
-        auto data = player_data.find(player.id);
-        if (data != player_data.end())
-        {
-            std::string pk = "Flag_" + std::to_string(player.id);
-            text_overlays[0].set_text(pk, data->second.has_flag ? "⚑" : "");
-
-            glm::vec2 pos = 2.0f * world_to_screen(glm::vec3(player.position, 0));
-            text_overlays[0].move_text(pk, (int)pos[0] - 20, (int)pos[1] + 90);
-        }
-    }
-}
-
 void PlayMode::update_control(float elapsed)
 {
     // queue data for sending to server:
     controls.send_controls_message(&client.connection);
+
+    if (controls.radar.downs)
+    {
+        radar.scan_special(local_player, 999);
+    }
 
     // reset button press counters:
     controls.left.downs = 0;
@@ -303,6 +308,7 @@ void PlayMode::update_control(float elapsed)
     controls.up.downs = 0;
     controls.down.downs = 0;
     controls.jump.downs = 0;
+    controls.radar.downs = 0;
 }
 
 void PlayMode::update_connection(float elapsed)
@@ -349,27 +355,32 @@ void PlayMode::update_camera(float elapsed)
 }
 
 void PlayMode::update_sound(float elapsed)
-{   
-    //go through all the network objects to see which has a sound to play
-    
-    for(auto &netObj: network_objects){
-        if(netObj.sound_cues != 0){
+{
+    // go through all the network objects to see which has a sound to play
+
+    for (auto &netObj : network_objects)
+    {
+        if (netObj.sound_cues != 0)
+        {
             execute_network_soundcues(netObj.type, netObj.sound_cues, glm::vec3(netObj.position, 0), netObj.id);
-            //clear the sound_cues
+            // clear the sound_cues
             netObj.sound_cues = 0;
-        }           
+        }
     }
-    //change the position of submarine moving sound
-    for (auto it = sub_moving.begin(); it != sub_moving.end(); ) {
+    // change the position of submarine moving sound
+    for (auto it = sub_moving.begin(); it != sub_moving.end();)
+    {
         uint32_t id = it->first;
-        //if id doesn't exist in players, it's removed
-        if(network_drawables.find(id) == network_drawables.end()){
+        // if id doesn't exist in players, it's removed
+        if (network_drawables.find(id) == network_drawables.end())
+        {
             it = sub_moving.erase(it);
         }
-        else{
+        else
+        {
             glm::vec3 pos = network_drawables[id]->transform->position;
             it->second->set_position(pos);
-            //std::cout<<"here"<<std::endl;
+            // std::cout<<"here"<<std::endl;
             it++;
         }
     }
@@ -477,67 +488,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
     GL_ERRORS();
 }
 
-void PlayMode::draw_overlay(glm::uvec2 const &drawable_size)
-{
-
-    glDisable(GL_DEPTH_TEST);
-
-    float aspect = float(drawable_size.x) / float(drawable_size.y);
-    glm::vec3 eye = camera->transform->position;
-    glm::vec3 fwd = {0, 0, -1};
-    glm::vec3 up = {0, 1, 0};
-    glm::mat4 V = glm::lookAt(eye, eye + fwd, up);
-    glm::mat4 P = glm::perspective(camera->fovy, aspect, 0.1f, 1000.0f);
-    DrawLines hud(P * V);
-
-    // draw spawn point
-    glm::vec3 spawn(player_data[local_player->id].spawn_pos, 0);
-    hud.draw(spawn + glm::vec3(-5, 0, 0), spawn + glm::vec3(5, 0, 0), glm::u8vec4(0, 255, 0, 255));
-    hud.draw(spawn + glm::vec3(0, -5, 0), spawn + glm::vec3(0, 5, 0), glm::u8vec4(0, 255, 0, 255));
-    // draw radar
-    radar.render(hud);
-
-    // render text
-    for (auto text_overlay : text_overlays)
-    {
-        text_overlay.draw(drawable_size);
-    }
-
-    // draw health
-    // if (font_id >= 0 && local_player)
-    // {
-    //     GLint vp[4];
-    //     glGetIntegerv(GL_VIEWPORT, vp);
-    //     float win_w = float(vp[2]);
-    //     float win_h = float(vp[3]);
-
-    //     std::string health_text = "Health: " + std::to_string(player_data.hp);
-
-    //     // Center the text
-    //     float text_x = win_w / 2.0f; // tweak offset to roughly center
-    //     float text_y = win_h / 2.0f;
-
-    //     // text_engine->render_text(font_id, health_text, text_x, text_y);
-    // }
-
-    // auto draw_point = [&](glm::vec3 p, Trace hit)
-    // {
-    //     GLuint vao, vbo;
-    //     glGenVertexArrays(1, &vao);
-    //     glBindVertexArray(vao);
-
-    //     glGenBuffers(1, &vbo);
-    //     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    //     glBufferData(GL_ARRAY_BUFFER, sizeof(p), &p, GL_STATIC_DRAW);
-
-    //     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
-    //     glEnableVertexAttribArray(0);
-
-    //     glPointSize(6.0f);
-    //     glDrawArrays(GL_POINTS, 0, 1);
-    // };
-}
-
 glm::vec2 PlayMode::local_player_pos()
 {
     glm::vec3 p = network_drawables[local_player->id]->transform->position;
@@ -576,11 +526,12 @@ bool PlayMode::recv_state_message(Connection *connection_)
     read(&network_objects_count);
     for (uint8_t i = 0; i < network_objects_count; ++i)
     {
-        
+
         network_objects.emplace_back();
         NetworkObject &obj = network_objects.back();
-        if(obj.sound_cues != 0){
-            std::cout<<"what the fuck"<<std::endl;
+        if (obj.sound_cues != 0)
+        {
+            std::cout << "what the fuck" << std::endl;
         };
         obj.receive(&at, recv_buffer);
         // find local player
@@ -638,15 +589,15 @@ bool PlayMode::recv_state_message(Connection *connection_)
     return true;
 }
 
-glm::vec2 PlayMode::world_to_screen(const glm::vec3 &worldPos) const
+glm::vec2 PlayMode::world_to_screen(glm::vec2 worldPos, const UIRenderer *renderer) const
 {
-    glm::vec4 clip = camera->make_projection() * camera->make_view() * glm::vec4(worldPos, 1.0f);
+    glm::vec4 clip = camera->make_projection() * camera->make_view() * glm::vec4(worldPos, 0.0f, 1.0f);
 
     if (clip.w == 0.0f)
         return glm::vec2(-9999.0f, -9999.0f);
     glm::vec3 ndc = glm::vec3(clip) / clip.w;
 
-    glm::vec2 screen_size = get_screen_size();
+    glm::vec2 screen_size = renderer->get_size();
     float x = (ndc.x * 0.5f + 0.5f) * screen_size[0];
     // float y = (1.0f - (ndc.y * 0.5f + 0.5f)) * screen_size[1];
     float y = (ndc.y * 0.5f + 0.5f) * screen_size[1];

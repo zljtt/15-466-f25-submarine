@@ -28,6 +28,7 @@ struct GameObject
     ObjectType type = ObjectType::Obstacle;
     glm::vec2 position = glm::vec2(0.0f, 0.0f);
     glm::vec2 scale = glm::vec2(1.0f, 1.0f);
+    glm::vec2 velocity = glm::vec2(0.0f, 0.0f);
 
     GameObject() {};
     GameObject(glm::vec2 pos, glm::vec2 box) : position(pos), scale(box)
@@ -36,6 +37,7 @@ struct GameObject
             box.x = -box.x;
         if (box.y < 0)
             box.y = -box.y;
+        velocity = glm::vec2(0.0f, 0.0f);
     };
 
     virtual void init() {};
@@ -57,22 +59,15 @@ struct NetworkObject : GameObject
 {
     // common
     uint32_t id;
-    glm::vec2 velocity = glm::vec2(0.0f, 0.0f);
-
-    
 
     uint8_t sound_cues = 0;
-
-
-    //server side function to add a cue to send
-    void add_sound_cue(uint8_t s){
-        std::cout<<"adding sound cue"<<static_cast<int>(s)<<"to"<< static_cast<int>(sound_cues)<<std::endl;
+    // server side function to add a cue to send
+    void add_sound_cue(uint8_t s)
+    {
+        std::cout << "adding sound cue" << static_cast<int>(s) << "to" << static_cast<int>(sound_cues) << std::endl;
         sound_cues |= s;
-        std::cout<<"now " << id<< " has "<<static_cast<int>(sound_cues)<<std::endl;
+        std::cout << "now " << id << " has " << static_cast<int>(sound_cues) << std::endl;
     }
-
-
-
 
     // server only, set to true to mark this object as deleted
     // it will be deleted at the end of this frame
@@ -119,7 +114,7 @@ struct Player : NetworkObject
     // player inputs (sent from client):
     struct Controls
     {
-        Button left, right, up, down, jump;
+        Button left, right, up, down, jump, radar;
 
         void send_controls_message(Connection *connection) const;
 

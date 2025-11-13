@@ -1,4 +1,5 @@
 #include "PlayMode.hpp"
+#include "Registry.hpp"
 
 void PlayMode::update_ui(float elapsed)
 {
@@ -23,7 +24,7 @@ void PlayMode::update_ui(float elapsed)
         if (data != player_data.end())
         {
             std::string pk = "Flag_" + std::to_string(player.id);
-            glm::vec2 pos = world_to_screen(glm::vec3(player.position, 0), ui_texts);
+            glm::vec2 pos = world_to_screen(glm::vec3(player.position, 0), text_overlays[GUI].renderer);
             text_overlays[RADAR].update_text(pk, data->second.has_flag ? "⚑" : "", pos + glm::vec2(-10.0f, 20.0f));
         }
     }

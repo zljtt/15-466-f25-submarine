@@ -2,6 +2,7 @@
 #include "Raycast.hpp"
 #include "BBox.hpp"
 #include "DrawLines.hpp"
+#include "GL.hpp"
 
 #include <glm/glm.hpp>
 #include <list>
@@ -12,17 +13,21 @@ struct PlayMode;
 struct RadarPoint
 {
     glm::vec2 direction;
-    glm::u8vec4 color;
-    float velocity = 0;
+    glm::vec4 color = glm::vec4(1.0f);
     bool touched = false;
     float bound = INFINITY; // max distance
+    GLuint tex;
 };
 
 struct ScanPath
 {
     std::vector<RadarPoint> points;
     glm::vec2 origin;
+    glm::u8vec4 color;
+    bool show_out_of_range = false;
     float distance;
+    float max_distance;
+    float speed;
 };
 
 struct ScanResult
@@ -31,6 +36,8 @@ struct ScanResult
     glm::vec4 color;
     float size = 50.0f;
     float age = 0.0f;
+    bool show_out_of_range = false;
+    GLuint tex;
 };
 
 struct Radar
@@ -62,6 +69,8 @@ struct Radar
     glm::u8vec4 get_radar_color(GameObject const *target);
     void render(DrawLines &hud);
     void render_path(DrawLines &hud);
+    void render_results();
+
     void update(float elapse);
     void scan(GameObject const *origin, float range, int count);
     void scan_special(GameObject const *origin, float range);

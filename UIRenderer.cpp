@@ -134,7 +134,8 @@ void UIRenderer::draw_textured_quad(glm::uvec2 const &drawable_size, UIOverlay::
     // float sx = drawable_size.x / width;
     // float sy = drawable_size.y / height;
     glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(image.pos, 0.0f)) *
-                      glm::scale(glm::mat4(1.0f), glm::vec3(image.size, 1.0f));
+                      glm::scale(glm::mat4(1.0f), glm::vec3(image.size.x, -image.size.y, 1.0f)) *
+                      glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
     // glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(12.0f, 12.0f, 0.0f)) *
     //                   glm::scale(glm::mat4(1.0f), glm::vec3(float(width), float(height), 1.0f));
 
@@ -197,6 +198,9 @@ void UIRenderer::draw_screen_quad(glm::uvec2 const &drawable_size) const
     // standard 'over' blending:
     glBlendEquation(GL_FUNC_ADD);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glDisableVertexAttribArray(color);
+    glVertexAttrib4f(color, 1.0f, 1.0f, 1.0f, 1.0f);
 
     // actually draw:
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);

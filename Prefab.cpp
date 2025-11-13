@@ -7,6 +7,7 @@
 #include "data_path.hpp"
 
 #include <glm/glm.hpp>
+#include "Registry.hpp"
 
 Load<MeshBuffer> prototype_prefab_meshes(LoadTagDefault, []() -> MeshBuffer const *
                                          {

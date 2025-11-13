@@ -27,3 +27,4 @@ scenes/show-scene*
 scenes/SDL3.dll
 *.blend[0-9]
 .DS_Store
+*/.DS_Store

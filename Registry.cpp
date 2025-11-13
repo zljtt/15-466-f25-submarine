@@ -7,7 +7,7 @@
 
 GLuint meshes_for_lit_color_texture_program = 0;
 
-static GLuint load_texture_from_png(const std::string &path)
+static Sprite *load_texture_from_png(const std::string &path)
 {
     glm::uvec2 size;
     std::vector<glm::u8vec4> data;
@@ -33,29 +33,24 @@ static GLuint load_texture_from_png(const std::string &path)
     // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
     glBindTexture(GL_TEXTURE_2D, 0);
-    return tex;
+    return new Sprite(tex, size.x, size.y);
 }
 
 // ============= TEXTURE =============
-Load<GLuint> tex_obstacle(LoadTagDefault, []() -> GLuint const *
-                          {
-    GLuint t = load_texture_from_png(data_path("rock_material_basecolor_2.png"));
-    return new GLuint(t); });
+Load<Sprite> tex_obstacle(LoadTagDefault, []() -> Sprite const *
+                          { return load_texture_from_png(data_path("rock_material_basecolor_2.png")); });
 
-Load<GLuint> tex_radar_blurred(LoadTagDefault, []() -> GLuint const *
-                               {
-    GLuint t = load_texture_from_png(data_path("radar_spot.png"));
-    return new GLuint(t); });
+Load<Sprite> tex_radar_blurred(LoadTagDefault, []() -> Sprite const *
+                               { return load_texture_from_png(data_path("radar_spot.png")); });
 
-Load<GLuint> tex_radar_submarine(LoadTagDefault, []() -> GLuint const *
-                                 {
-    GLuint t = load_texture_from_png(data_path("submarine_icon.png"));
-    return new GLuint(t); });
+Load<Sprite> tex_radar_submarine(LoadTagDefault, []() -> Sprite const *
+                                 { return load_texture_from_png(data_path("submarine_icon.png")); });
 
-Load<GLuint> tex_radar_flag(LoadTagDefault, []() -> GLuint const *
-                            {
-    GLuint t = load_texture_from_png(data_path("flag_icon.png"));
-    return new GLuint(t); });
+Load<Sprite> tex_radar_flag(LoadTagDefault, []() -> Sprite const *
+                            { return load_texture_from_png(data_path("flag_icon.png")); });
+
+Load<Sprite> tex_radar_radar(LoadTagDefault, []() -> Sprite const *
+                             { return load_texture_from_png(data_path("radar_icon.png")); });
 
 // ============= SCENE AND MESH =============
 Load<MeshBuffer> prototype_scene_meshes(LoadTagDefault, []() -> MeshBuffer const *
@@ -80,7 +75,7 @@ Load<Scene> prototype_scene(LoadTagDefault, []() -> Scene const *
         drawable.pipeline.count = mesh.count;
 
         drawable.pipeline.textures[0].target = GL_TEXTURE_2D;
-        drawable.pipeline.textures[0].texture = *tex_obstacle;
+        drawable.pipeline.textures[0].texture = tex_obstacle->tex;
     };
     return new Scene(data_path("prototype.scene"), on_drawable); });
 

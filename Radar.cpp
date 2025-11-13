@@ -44,17 +44,17 @@ void Radar::render_path(DrawLines &hud)
 
 void Radar::render_results()
 {
-    client_game->get_overlay(PlayMode::RADAR).remove_images([](std::string const &key)
-                                                            { return key.rfind("R_", 0) == 0; });
+    // client_game->get_overlay(PlayMode::RADAR).remove_images([](std::string const &key)
+    //                { return key.rfind("R_", 0) == 0; });
     for (size_t i = 0; i < results.size(); i++)
     {
         std::string key = "R_" + std::to_string(i);
         auto point = results[i];
         glm::vec2 size = glm::vec2(point.size, point.size);
-        glm::vec2 pos = client_game->world_to_screen(glm::vec3(point.point, 0), renderer_radar);
+        auto renderer = client_game->get_overlay(PlayMode::RADAR).renderer;
+        glm::vec2 pos = client_game->world_to_screen(glm::vec3(point.point, 0), renderer);
         if (point.show_out_of_range)
         {
-            auto renderer = client_game->get_overlay(PlayMode::RADAR).renderer;
             auto clamp_x = std::clamp(pos.x, size.x / 2.0f, (float)renderer->width - size.x / 2.0f);
             auto clamp_y = std::clamp(pos.y, size.y / 2.0f, (float)renderer->height - size.y / 2.0f);
             pos = glm::vec2(clamp_x, clamp_y);
@@ -68,10 +68,36 @@ void Radar::render_results()
     }
 }
 
+void Radar::render_revealed_player()
+{
+    for (int i = 0; i < client_game->level_data.revealed_objects.size(); i++)
+    {
+
+        std::string key = "P_" + std::to_string(i);
+        auto id = client_game->level_data.revealed_objects[i].obj_id;
+        if (id == client_game->local_player->id)
+            continue;
+        auto p = client_game->get_object(id);
+        auto renderer = client_game->get_overlay(PlayMode::RADAR).renderer;
+        glm::vec2 size = glm::vec2(RADAR_POINT_SIZE, RADAR_POINT_SIZE);
+        // std::cout << key << " " << p.position.x << "/" << p.position.y << "\n";
+        glm::vec2 pos = client_game->world_to_screen(glm::vec3(p.position, 0), renderer);
+
+        pos.x = std::clamp(pos.x, size.x / 2.0f, (float)renderer->width - size.x / 2.0f);
+        pos.y = std::clamp(pos.y, size.y / 2.0f, (float)renderer->height - size.y / 2.0f);
+
+        UIOverlay::ImageComponent img(tex_radar_radar->tex, pos - size / 2.0f, size);
+        client_game->get_overlay(PlayMode::RADAR).update_image(key, img);
+    }
+}
+
 void Radar::render(DrawLines &hud)
 {
     render_path(hud);
+    // clear all radar images
+    client_game->get_overlay(PlayMode::RADAR).images.clear();
     render_results();
+    render_revealed_player();
 }
 
 void Radar::update(float elapse)
@@ -155,7 +181,7 @@ void Radar::scan(GameObject const *origin, float range, int count)
             radar_point.bound = INFINITY;
             radar_point.color = green;
         }
-        radar_point.tex = *tex_radar_blurred;
+        radar_point.tex = tex_radar_blurred->tex;
         radar_point.direction = dir;
         radar_point.touched = false;
         path.points.push_back(radar_point);
@@ -202,11 +228,11 @@ void Radar::scan_special(GameObject const *origin, float range)
         GLuint texture;
         if (obj.type == ObjectType::Player && obj.id != client_game->local_player->id)
         {
-            texture = *tex_radar_submarine;
+            texture = tex_radar_submarine->tex;
         }
         else if (obj.type == ObjectType::Flag)
         {
-            texture = *tex_radar_flag;
+            texture = tex_radar_flag->tex;
         }
         else
         {

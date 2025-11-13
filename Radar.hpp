@@ -69,6 +69,7 @@ struct Radar
     glm::u8vec4 get_radar_color(GameObject const *target);
     void render(DrawLines &hud);
     void render_path(DrawLines &hud);
+    void render_revealed_player();
     void render_results();
 
     void update(float elapse);

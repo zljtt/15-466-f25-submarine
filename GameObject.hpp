@@ -111,6 +111,8 @@ struct Player : NetworkObject
     static constexpr float TORPEDO_COOLDOWN = 1.0f;
     static constexpr float MAX_HEALTH = 100.0f;
     static constexpr float COLLISION_DAMAGAE = 10.0f;
+    static constexpr float SUPER_RADAR_EXPOSURE_TIME = 5.0f;
+
     // player inputs (sent from client):
     struct Controls
     {
@@ -144,7 +146,8 @@ struct Player : NetworkObject
     virtual int can_collide(const NetworkObject *other) const override;
     virtual void update(float elapsed, Game *game) override;
     void update_weapon(float elapsed, Game *game);
-    void update_movement(float elapsed, Game *game, glm::vec2 control);
+    void update_movement(float elapsed, Game *game);
+    void update_control(float elapsed, Game *game);
     void update_win_lose(float elapsed, Game *game);
     void take_damage(Game *game, float damage, GameObject *source);
     void die(Game *game, GameObject *source);

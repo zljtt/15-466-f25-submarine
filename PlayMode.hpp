@@ -12,6 +12,7 @@
 #include "Radar.hpp"
 #include "TextEngine.hpp"
 #include "UIRenderer.hpp"
+#include "Level.hpp"
 
 #include <glm/glm.hpp>
 
@@ -77,14 +78,18 @@ struct PlayMode : Mode
 
     std::unique_ptr<TextEngine> text_engine = nullptr;
     std::vector<UIOverlay> text_overlays;
-
     std::list<NetworkObject> network_objects;
 
+    // data for radar
     Radar radar;
     float radar_timer;
 
+    // data for level
+    Level level_data;
+
     // input tracking for local player:
     Player::Controls controls;
+
     // data for local player;
     std::unordered_map<uint32_t, Player::PlayerData> player_data;
 
@@ -110,4 +115,5 @@ struct PlayMode : Mode
     bool recv_state_message(Connection *connection);
 
     std::vector<NetworkObject> get_objects(ObjectType type) const;
+    NetworkObject get_object(uint32_t id) const;
 };

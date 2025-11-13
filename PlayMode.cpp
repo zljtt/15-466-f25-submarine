@@ -469,7 +469,7 @@ bool PlayMode::recv_state_message(Connection *connection_)
             drawable->second->transform->scale = glm::vec3(obj.scale, 1);
         }
     }
-
+    // receive player data
     uint8_t player_data_count;
     read(&player_data_count);
     for (uint8_t i = 0; i < player_data_count; ++i)
@@ -480,6 +480,8 @@ bool PlayMode::recv_state_message(Connection *connection_)
         data.receive(&at, recv_buffer);
         player_data[player_id] = data;
     }
+    // receive level data
+    level_data.receive(&at, recv_buffer);
 
     if (at != size)
     {
@@ -532,4 +534,17 @@ std::vector<NetworkObject> PlayMode::get_objects(ObjectType type) const
         }
     }
     return ret;
+}
+
+NetworkObject PlayMode::get_object(uint32_t id) const
+{
+    NetworkObject o;
+    for (auto &obj : network_objects)
+    {
+        if (obj.id == id)
+        {
+            return obj;
+        }
+    }
+    return o;
 }

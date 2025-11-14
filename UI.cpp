@@ -5,14 +5,14 @@ void PlayMode::update_ui(float elapsed)
 {
     // Torpedo cooldown
     std::string torpedo_text = std::string("READY!!");
-    if (player_data[local_player->id].torpedo_timer <= Player::TORPEDO_COOLDOWN)
+    if (local_player_data().torpedo_timer <= Player::TORPEDO_COOLDOWN)
     {
-        torpedo_text = std::to_string(player_data[local_player->id].torpedo_timer);
+        torpedo_text = std::to_string(local_player_data().torpedo_timer);
     }
     text_overlays[GUI].update_text("torpedo_cooldown", torpedo_text, glm::vec2(-200, 10), UIOverlay::BottomRight);
 
     // HP Text
-    text_overlays[GUI].update_text(HP, "HP: " + std::to_string((int)player_data[local_player->id].hp), glm::vec2(-200, -100), UIOverlay::TopRight);
+    text_overlays[GUI].update_text(HP, "HP: " + std::to_string((int)local_player_data().hp), glm::vec2(-200, -100), UIOverlay::TopRight);
 
     // Player flag text
     text_overlays[GUI].remove_texts([](std::string const &key)
@@ -43,7 +43,7 @@ void PlayMode::draw_overlay(glm::uvec2 const &drawable_size)
     DrawLines hud(P * V);
 
     // draw spawn point
-    glm::vec3 spawn(player_data[local_player->id].spawn_pos, 0);
+    glm::vec3 spawn(local_player_data().spawn_pos, 0);
     hud.draw(spawn + glm::vec3(-5, 0, 0), spawn + glm::vec3(5, 0, 0), glm::u8vec4(0, 255, 0, 255));
     hud.draw(spawn + glm::vec3(0, -5, 0), spawn + glm::vec3(0, 5, 0), glm::u8vec4(0, 255, 0, 255));
     // draw radar

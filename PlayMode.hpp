@@ -116,4 +116,8 @@ struct PlayMode : Mode
 
     std::vector<NetworkObject> get_objects(ObjectType type) const;
     NetworkObject get_object(uint32_t id) const;
+    Player::PlayerData local_player_data() const
+    {
+        return player_data.at(local_player->id);
+    }
 };

@@ -28,3 +28,4 @@ scenes/SDL3.dll
 *.blend[0-9]
 .DS_Store
 */.DS_Store
+dist/.DS_Store

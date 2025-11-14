@@ -60,7 +60,7 @@ void Radar::render_results()
             pos = glm::vec2(clamp_x, clamp_y);
         }
         UIOverlay::ImageComponent img(point.tex, pos - size / 2.0f, size);
-        float a = (RADAR_POINT_LIFE_TIME - point.age) / RADAR_POINT_LIFE_TIME;
+        float a = (point.duration - point.age) / point.duration;
         img.color = glm::vec4(glm::vec3(point.color), a);
         // img.color = glm::vec4(0.0f, 0.1f, 1.0f, a);
 
@@ -109,7 +109,7 @@ void Radar::update(float elapse)
     results.erase(
         std::remove_if(results.begin(), results.end(),
                        [](const ScanResult &r)
-                       { return r.age > RADAR_POINT_LIFE_TIME; }),
+                       { return r.age > r.duration; }),
         results.end());
 
     for (auto &path : paths)
@@ -122,9 +122,9 @@ void Radar::update(float elapse)
             {
                 point.touched = true;
                 auto at = path.origin + path.distance * point.direction;
-                int offset = dist(gen);
+                int offset = rand_size(gen);
 
-                results.emplace_back(at, point.color, RADAR_POINT_SIZE + offset, 0.0f, path.show_out_of_range, point.tex);
+                results.emplace_back(at, point.color, RADAR_POINT_SIZE + offset, 0.0f, path.show_out_of_range, point.duration, point.tex);
             }
         }
     }
@@ -146,7 +146,7 @@ void Radar::scan(GameObject const *origin, float range, int count)
     path.color = default_color;
     path.show_out_of_range = false;
     path.speed = RADAR_SPEED;
-    path.max_distance = RADAR_RANGE;
+    path.max_distance = client_game->local_player_data().normal_radar_range;
 
     for (int i = 0; i < count; ++i)
     {
@@ -158,12 +158,16 @@ void Radar::scan(GameObject const *origin, float range, int count)
         glm::vec4 green(0.0f, 1.0f, 0.0f, 1.0f);
         if (hit.hit)
         {
-            if (hit.distance > range)
+            // distance
+            if (rand_float(gen) < client_game->local_player_data().normal_radar_malfunction_change)
+                radar_point.bound = INFINITY;
+            else if (hit.distance > range)
                 radar_point.bound = INFINITY;
             else if (hit.distance < 1e-6f)
                 radar_point.bound = 0;
             else
                 radar_point.bound = hit.distance;
+            // color
             float velocity = std::sqrtf(hit.obj->velocity.x * hit.obj->velocity.x + hit.obj->velocity.y * hit.obj->velocity.y);
             if (velocity < 0.05f)
             {
@@ -181,6 +185,7 @@ void Radar::scan(GameObject const *origin, float range, int count)
             radar_point.bound = INFINITY;
             radar_point.color = green;
         }
+        radar_point.duration = client_game->local_player_data().normal_radar_info_duration;
         radar_point.tex = tex_radar_blurred->tex;
         radar_point.direction = dir;
         radar_point.touched = false;
@@ -208,6 +213,7 @@ void Radar::scan_special(GameObject const *origin, float range)
         radar_point.touched = false;
         radar_point.bound = INFINITY;
         radar_point.color = glm::vec4(1.0f);
+        radar_point.duration = client_game->local_player_data().super_radar_info_duration;
         path.points.push_back(radar_point);
     }
 
@@ -247,7 +253,7 @@ void Radar::scan_special(GameObject const *origin, float range)
     }
 
     paths.push_back(path);
-    special_radar_timer = 5.0f;
+    special_radar_timer = client_game->local_player_data().super_radar_cooldown;
 }
 glm::u8vec4 Radar::get_radar_color(GameObject const *target)
 {

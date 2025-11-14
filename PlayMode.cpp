@@ -113,6 +113,48 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
             controls.radar.pressed = true;
             return true;
         }
+        else if (evt.key.key == SDLK_Q)
+        {
+            controls.rotate_left.downs += 1;
+            controls.rotate_left.pressed = true;
+            return true;
+        }
+        else if (evt.key.key == SDLK_R)
+        {
+            controls.rotate_right.downs += 1;
+            controls.rotate_right.pressed = true;
+            return true;
+        }
+        else if (evt.key.key == SDLK_1)
+        {
+            controls.num1.downs += 1;
+            controls.num1.pressed = true;
+            return true;
+        }
+        else if (evt.key.key == SDLK_2)
+        {
+            controls.num2.downs += 1;
+            controls.num2.pressed = true;
+            return true;
+        }
+        else if (evt.key.key == SDLK_3)
+        {
+            controls.num3.downs += 1;
+            controls.num3.pressed = true;
+            return true;
+        }
+        else if (evt.key.key == SDLK_4)
+        {
+            controls.num4.downs += 1;
+            controls.num4.pressed = true;
+            return true;
+        }
+        else if (evt.key.key == SDLK_L)
+        {
+            controls.light.downs += 1;
+            controls.light.pressed = true;
+            return true;
+        }
     }
     else if (evt.type == SDL_EVENT_KEY_UP)
     {
@@ -144,6 +186,41 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
         else if (evt.key.key == SDLK_R)
         {
             controls.radar.pressed = false;
+            return true;
+        }
+        else if (evt.key.key == SDLK_Q)
+        {
+            controls.rotate_left.pressed = false;
+            return true;
+        }
+        else if (evt.key.key == SDLK_E)
+        {
+            controls.rotate_right.pressed = false;
+            return true;
+        }
+        else if (evt.key.key == SDLK_1)
+        {
+            controls.num1.pressed = false;
+            return true;
+        }
+        else if (evt.key.key == SDLK_2)
+        {
+            controls.num2.pressed = false;
+            return true;
+        }
+        else if (evt.key.key == SDLK_3)
+        {
+            controls.num3.pressed = false;
+            return true;
+        }
+        else if (evt.key.key == SDLK_4)
+        {
+            controls.num4.pressed = false;
+            return true;
+        }
+        else if (evt.key.key == SDLK_L)
+        {
+            controls.light.pressed = false;
             return true;
         }
     }
@@ -211,7 +288,14 @@ void PlayMode::update_control(float elapsed)
     controls.up.downs = 0;
     controls.down.downs = 0;
     controls.jump.downs = 0;
+    controls.light.downs = 0;
     controls.radar.downs = 0;
+    controls.num1.downs = 0;
+    controls.num2.downs = 0;
+    controls.num3.downs = 0;
+    controls.num4.downs = 0;
+    controls.rotate_left.downs = 0;
+    controls.rotate_right.downs = 0;
 }
 
 void PlayMode::update_connection(float elapsed)
@@ -245,8 +329,8 @@ void PlayMode::update_radar(float elapsed)
     radar_timer -= elapsed;
     if (radar_timer < 0)
     {
-        radar_timer = Radar::RADAR_INTERVAL;
-        radar.scan(local_player, Radar::RADAR_RANGE, Radar::RADAR_RAY_COUNT);
+        radar_timer = local_player_data().normal_radar_interval;
+        radar.scan(local_player, local_player_data().normal_radar_range, Radar::RADAR_RAY_COUNT);
     }
     radar.update(elapsed);
 }
@@ -360,16 +444,21 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
     }
 
     // player spot light
-    {
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_ONE, GL_ONE);
-        glDepthFunc(GL_EQUAL);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE, GL_ONE);
+    glDepthFunc(GL_EQUAL);
 
-        glm::vec3 spot_light_pos(player_pos.x, player_pos.y, 0.0f);
+    for (auto data : player_data)
+    {
+        if (!data.second.light_on)
+            continue;
+        auto player = get_object(data.first);
+
+        glm::vec3 spot_light_pos(player.position.x, player.position.y, 0.0f);
         glm::vec3 spot_light_energy(5.0f, 5.0f, 5.0f);
 
         // glm::vec3 spot_light_dir(1.0f, 0.0f, 0.0f);
-        glm::vec3 spot_light_dir(player_data[local_player->id].player_facing ? 1.0f : -1.0f, 0.0f, 0.0f);
+        glm::vec3 spot_light_dir(data.second.player_facing ? 1.0f : -1.0f, 0.0f, 0.0f);
         spot_light_dir = glm::normalize(spot_light_dir);
         float cos_cutoff = std::cos(cutoff);
 
@@ -382,9 +471,9 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
         glUseProgram(0);
 
         scene.draw(*camera);
-
-        glDisable(GL_BLEND);
     }
+
+    glDisable(GL_BLEND);
 
     draw_overlay(drawable_size);
 

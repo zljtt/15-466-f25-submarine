@@ -110,13 +110,14 @@ struct Player : NetworkObject
     // combat
     static constexpr float TORPEDO_COOLDOWN = 1.0f;
     static constexpr float MAX_HEALTH = 100.0f;
-    static constexpr float COLLISION_DAMAGAE = 10.0f;
     static constexpr float SUPER_RADAR_EXPOSURE_TIME = 5.0f;
 
     // player inputs (sent from client):
     struct Controls
     {
-        Button left, right, up, down, jump, radar;
+        Button left, right, up, down, jump;
+        Button radar, light, rotate_left, rotate_right;
+        Button num1, num2, num3, num4;
 
         void send_controls_message(Connection *connection) const;
 
@@ -129,14 +130,29 @@ struct Player : NetworkObject
     // additional player data
     struct PlayerData
     {
-        float torpedo_timer = 0.0f;
-        bool player_facing = false; // false is left, true is right
+        // general
         float hp = MAX_HEALTH;
         bool has_flag = false;
         int flag_count = 0;
         glm::vec2 spawn_pos;
-
         bool engineStarted = false;
+        float collision_damage = 10.0f; // server
+
+        // weapon
+        float torpedo_timer = 0.0f;
+
+        // radar
+        float normal_radar_interval = 0.8f; // 1.3
+        float normal_radar_malfunction_change = 0.6f;
+        float normal_radar_range = 20.0f;
+        float normal_radar_info_duration = 2.8f;
+        float super_radar_cooldown = 5.0f;
+        float super_radar_info_duration = 5.0f;
+        bool super_radar_exposure = true; // server
+
+        // light
+        bool light_on = true;
+        bool player_facing = false; // false is left, true is right
 
         void send(Connection *connection) const;
         void receive(uint32_t *at, std::vector<uint8_t> &recv_buffer);

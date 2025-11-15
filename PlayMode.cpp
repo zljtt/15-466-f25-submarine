@@ -418,6 +418,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
 
     glUseProgram(lit_color_texture_program->program);
     glUniform1f(lit_color_texture_program->TILES_PER_UNIT_float, 0.1f);
+    glUniform3fv(lit_color_texture_program->CAMERA_POSITION_vec3, 1, glm::value_ptr(camera->transform->position + glm::vec3(0.0f, 0.0f, -10.0f)));
     glUseProgram(0);
 
     // environment light

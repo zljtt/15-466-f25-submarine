@@ -102,7 +102,7 @@ struct PlayMode : Mode
     glm::vec2 local_player_pos();
 
     float water_surface_y = 220.0f;
-    float atten_speed = 0.02f;
+    float atten_speed = 0.002f;
     float cutoff = glm::radians(20.0f);
     glm::vec2 prev_player_pos = glm::vec2(0.0f);
     float spot_light_dir_x = 0.0f;

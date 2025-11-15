@@ -12,15 +12,13 @@
 #include "Radar.hpp"
 #include "TextEngine.hpp"
 #include "UIRenderer.hpp"
+#include "Level.hpp"
 
 #include <glm/glm.hpp>
 
 #include <vector>
 #include <deque>
 #include <array>
-
-extern Load<Prefab> prefab_player;
-extern Load<Prefab> prefab_torpedo;
 
 struct PlayMode : Mode
 {
@@ -30,7 +28,6 @@ struct PlayMode : Mode
     // overlay index
     static const int GUI = 0;
     static const int RADAR = 1;
-
     static const int Flag = 1;
 
     PlayMode(Client &client);
@@ -49,6 +46,7 @@ struct PlayMode : Mode
     virtual void draw(glm::uvec2 const &drawable_size) override;
     glm::vec2 world_to_screen(glm::vec2 worldPos, const UIRenderer *renderer) const;
     glm::vec2 get_screen_size() const;
+    UIOverlay &get_overlay(int id);
     //----- client game state -----
     Scene::Camera *camera = nullptr;
     std::unordered_map<uint32_t, Scene::Drawable *> network_drawables;
@@ -80,14 +78,18 @@ struct PlayMode : Mode
 
     std::unique_ptr<TextEngine> text_engine = nullptr;
     std::vector<UIOverlay> text_overlays;
-
     std::list<NetworkObject> network_objects;
 
+    // data for radar
     Radar radar;
     float radar_timer;
 
+    // data for level
+    Level level_data;
+
     // input tracking for local player:
     Player::Controls controls;
+
     // data for local player;
     std::unordered_map<uint32_t, Player::PlayerData> player_data;
 
@@ -113,11 +115,9 @@ struct PlayMode : Mode
     bool recv_state_message(Connection *connection);
 
     std::vector<NetworkObject> get_objects(ObjectType type) const;
+    NetworkObject get_object(uint32_t id) const;
+    Player::PlayerData local_player_data() const
+    {
+        return player_data.at(local_player->id);
+    }
 };
-
-extern GLuint meshes_for_lit_color_texture_program;
-extern Load<MeshBuffer> prototype_scene_meshes;
-extern Load<Scene> prototype_scene;
-extern Load<UIRenderer> ui_texts;
-extern Load<UIRenderer> radar_text;
-extern Load<GLuint> tex_radar_result;

@@ -33,30 +33,26 @@ int Player::can_collide(const NetworkObject *other) const
 
 void Player::update(float elapsed, Game *game)
 {
-    glm::vec2 control_dir = glm::vec2(0.0f, 0.0f);
-    if (controls.left.pressed)
-        control_dir.x -= 1.0f;
-    if (controls.right.pressed)
-        control_dir.x += 1.0f;
-    if (controls.down.pressed)
-        control_dir.y -= 1.0f;
-    if (controls.up.pressed)
-        control_dir.y += 1.0f;
 
     update_weapon(elapsed, game);
-    update_movement(elapsed, game, control_dir);
+    update_movement(elapsed, game);
     update_win_lose(elapsed, game);
+    update_control(elapsed, game);
     // reset 'downs' since controls have been handled:
-    controls.left.downs = 0;
-    controls.right.downs = 0;
-    controls.up.downs = 0;
-    controls.down.downs = 0;
-    controls.jump.downs = 0;
-    controls.radar.downs = 0;
 }
 
-void Player::update_movement(float elapsed, Game *game, glm::vec2 control)
+void Player::update_movement(float elapsed, Game *game)
 {
+    glm::vec2 control = glm::vec2(0.0f, 0.0f);
+    if (controls.left.pressed)
+        control.x -= 1.0f;
+    if (controls.right.pressed)
+        control.x += 1.0f;
+    if (controls.down.pressed)
+        control.y -= 1.0f;
+    if (controls.up.pressed)
+        control.y += 1.0f;
+
     glm::vec2 v_desired = normalize(control) * MAX_SPEED;
     glm::vec2 dv = v_desired - velocity;
     float rate = 0;
@@ -124,7 +120,7 @@ void Player::update_movement(float elapsed, Game *game, glm::vec2 control)
         auto obstacle = get_colliders(hits, ObjectType::Obstacle);
         if (obstacle)
         {
-            take_damage(game, COLLISION_DAMAGAE, obstacle);
+            take_damage(game, data.collision_damage, obstacle);
             velocity = glm::vec2(0, 0);
         }
     }
@@ -148,6 +144,35 @@ void Player::update_weapon(float elapsed, Game *game)
     {
         data.torpedo_timer += elapsed;
     }
+}
+
+void Player::update_control(float elapsed, Game *game)
+{
+    if (controls.radar.downs)
+    {
+        if (data.super_radar_exposure)
+        {
+            game->level.revealed_objects.emplace_back(id, 0, SUPER_RADAR_EXPOSURE_TIME);
+        }
+    }
+    if (controls.light.downs)
+    {
+        data.light_on = !data.light_on;
+    }
+
+    controls.left.downs = 0;
+    controls.right.downs = 0;
+    controls.up.downs = 0;
+    controls.down.downs = 0;
+    controls.jump.downs = 0;
+    controls.radar.downs = 0;
+    controls.light.downs = 0;
+    controls.num1.downs = 0;
+    controls.num2.downs = 0;
+    controls.num3.downs = 0;
+    controls.num4.downs = 0;
+    controls.rotate_left.downs = 0;
+    controls.rotate_right.downs = 0;
 }
 
 void Player::update_win_lose(float elapsed, Game *game)
@@ -203,7 +228,7 @@ void Player::Controls::send_controls_message(Connection *connection_) const
     assert(connection_);
     auto &connection = *connection_;
 
-    uint32_t size = 5;
+    uint32_t size = 13;
     connection.send(Message::C2S_Controls);
     connection.send(uint8_t(size));
     connection.send(uint8_t(size >> 8));
@@ -223,7 +248,14 @@ void Player::Controls::send_controls_message(Connection *connection_) const
     send_button(up);
     send_button(down);
     send_button(jump);
-    // send_button(radar);
+    send_button(radar);
+    send_button(light);
+    send_button(num1);
+    send_button(num2);
+    send_button(num3);
+    send_button(num4);
+    send_button(rotate_left);
+    send_button(rotate_right);
 }
 
 bool Player::Controls::recv_controls_message(Connection *connection_)
@@ -239,7 +271,7 @@ bool Player::Controls::recv_controls_message(Connection *connection_)
     if (recv_buffer[0] != uint8_t(Message::C2S_Controls))
         return false;
     uint32_t size = (uint32_t(recv_buffer[3]) << 16) | (uint32_t(recv_buffer[2]) << 8) | uint32_t(recv_buffer[1]);
-    if (size != 5)
+    if (size != 13)
         throw std::runtime_error("Controls message with size " + std::to_string(size) + " != 5!");
 
     // expecting complete message:
@@ -263,7 +295,14 @@ bool Player::Controls::recv_controls_message(Connection *connection_)
     recv_button(recv_buffer[4 + 2], &up);
     recv_button(recv_buffer[4 + 3], &down);
     recv_button(recv_buffer[4 + 4], &jump);
-    // recv_button(recv_buffer[4 + 5], &radar);
+    recv_button(recv_buffer[4 + 5], &radar);
+    recv_button(recv_buffer[4 + 6], &light);
+    recv_button(recv_buffer[4 + 7], &num1);
+    recv_button(recv_buffer[4 + 8], &num2);
+    recv_button(recv_buffer[4 + 9], &num3);
+    recv_button(recv_buffer[4 + 10], &num4);
+    recv_button(recv_buffer[4 + 11], &rotate_left);
+    recv_button(recv_buffer[4 + 12], &rotate_right);
 
     // delete message from buffer:
     recv_buffer.erase(recv_buffer.begin(), recv_buffer.begin() + 4 + size);
@@ -279,6 +318,7 @@ void Player::PlayerData::send(Connection *connection) const
     connection->send(has_flag);
     connection->send(flag_count);
     connection->send(spawn_pos);
+    connection->send(light_on);
 };
 
 void Player::PlayerData::receive(uint32_t *at, std::vector<uint8_t> &recv_buffer)
@@ -294,4 +334,5 @@ void Player::PlayerData::receive(uint32_t *at, std::vector<uint8_t> &recv_buffer
     read(&has_flag);
     read(&flag_count);
     read(&spawn_pos);
+    read(&light_on);
 };

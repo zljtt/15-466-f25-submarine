@@ -61,7 +61,7 @@ void Game::update(float elapsed)
     {
         flag_spawn_timer -= elapsed;
         if (flag_spawn_timer < 0)
-        {             
+        {
             auto flag = spawn_object<Flag>();
             // PLAY SOUND : new flag spawned
             flag->add_sound_cue(static_cast<uint8_t>(SoundCues::JustSpawned));
@@ -78,8 +78,9 @@ void Game::update(float elapsed)
 
     for (NetworkObject *obj : game_objects)
     {
-        obj->update(elapsed, this);        
+        obj->update(elapsed, this);
     }
+    level.update(elapsed);
 }
 
 void Game::send_state_message(Connection *connection_, Player *connection_player) const
@@ -97,16 +98,19 @@ void Game::send_state_message(Connection *connection_, Player *connection_player
     // send game objects
     connection.send(uint8_t(game_objects.size()));
 
+    // send local players
     if (connection_player)
         connection_player->send(&connection);
 
+    // send game objects
     for (auto const &obj : game_objects)
     {
         if (obj == connection_player)
             continue;
-        
+
         obj->send(&connection);
     }
+    // send player data
     auto players = get_objects<Player>();
     connection.send(uint8_t(players.size()));
     for (auto p : players)
@@ -115,12 +119,12 @@ void Game::send_state_message(Connection *connection_, Player *connection_player
         p->data.send(&connection);
     }
 
+    // send level data
+    level.send(&connection);
+
     // compute the message size and patch into the message header:
     uint32_t size = uint32_t(connection.send_buffer.size() - mark);
     connection.send_buffer[mark - 3] = uint8_t(size);
     connection.send_buffer[mark - 2] = uint8_t(size >> 8);
     connection.send_buffer[mark - 1] = uint8_t(size >> 16);
 }
-
-
-

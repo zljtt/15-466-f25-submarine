@@ -4,6 +4,7 @@
 #include "GameObject.hpp"
 #include "Raycast.hpp"
 #include "Sound.hpp"
+#include "Level.hpp"
 
 #include <glm/glm.hpp>
 #include <string>
@@ -24,7 +25,8 @@ enum class Message : uint8_t
     //...
 };
 
-enum class SoundCues : uint8_t {
+enum class SoundCues : uint8_t
+{
     Start = 1 << 0,
     Stop = 1 << 1,
     Hit = 1 << 2,
@@ -43,7 +45,7 @@ struct Game
     std::list<NetworkObject *> game_objects; // the dynamic game object sync to from server to client
     BVH bvh;
 
-    
+    Level level;
 
     float flag_spawn_timer = 0;
     template <typename O>
@@ -107,6 +109,4 @@ struct Game
     // send game state.
     //   Will move "connection_player" to the front of the front of the sent list.
     void send_state_message(Connection *connection, Player *connection_player = nullptr) const;
-    
-
 };

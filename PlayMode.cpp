@@ -1,4 +1,5 @@
 #include "PlayMode.hpp"
+#include "Registry.hpp"
 
 #include "DrawLines.hpp"
 #include "gl_errors.hpp"
@@ -24,103 +25,6 @@
 #include "load_save_png.hpp"
 
 const std::string PlayMode::HP = "HP";
-
-static GLuint load_texture_from_png(const std::string &path)
-{
-    glm::uvec2 size;
-    std::vector<glm::u8vec4> data;
-    load_png(path, &size, &data, UpperLeftOrigin);
-
-    GLuint tex = 0;
-    glGenTextures(1, &tex);
-    glBindTexture(GL_TEXTURE_2D, tex);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,
-                 size.x, size.y, 0,
-                 GL_RGBA, GL_UNSIGNED_BYTE, data.data());
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-    glBindTexture(GL_TEXTURE_2D, 0);
-    return tex;
-}
-
-Load<GLuint> tex_obstacle(LoadTagDefault, []() -> GLuint const *
-                          {
-    // GLuint t = load_texture_from_png(data_path("obstacle_basecolor.png"));
-    GLuint t = load_texture_from_png(data_path("rock_material_basecolor_2.png"));
-
-    return new GLuint(t); });
-
-Load<GLuint> tex_radar_result(LoadTagDefault, []() -> GLuint const *
-                              {
-    GLuint t = load_texture_from_png(data_path("radar_spot.png"));
-
-    return new GLuint(t); });
-
-GLuint meshes_for_lit_color_texture_program = 0;
-
-Load<MeshBuffer> prototype_scene_meshes(LoadTagDefault, []() -> MeshBuffer const *
-                                        {
-	MeshBuffer const *ret = new MeshBuffer(data_path("prototype_scene.pnct"));
-	meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
-	return ret; });
-
-Load<Scene> prototype_scene(LoadTagDefault, []() -> Scene const *
-                            { 
-    auto on_drawable = [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name) {
-        if (mesh_name == "Player") return;
-        if (mesh_name == "Torpedo") return;
-        Mesh const &mesh = prototype_scene_meshes->lookup(mesh_name);
-        scene.drawables.emplace_back(transform);
-        Scene::Drawable &drawable = scene.drawables.back();
-
-        drawable.pipeline = lit_color_texture_program_pipeline;
-        drawable.pipeline.vao = meshes_for_lit_color_texture_program;
-        drawable.pipeline.type = mesh.type;
-        drawable.pipeline.start = mesh.start;
-        drawable.pipeline.count = mesh.count;
-
-        drawable.pipeline.textures[0].target = GL_TEXTURE_2D;
-        drawable.pipeline.textures[0].texture = *tex_obstacle;
-    };
-    return new Scene(data_path("prototype.scene"), on_drawable); });
-
-Load<UIRenderer> ui_texts(LoadTagDefault, []() -> UIRenderer const *
-                          {
-	UIRenderer *ret = new UIRenderer(data_path("DejaVuSans.ttf").c_str(), 16);
-    ret->init(1280, 720,
-        color_texture_program->program,
-        color_texture_program->CLIP_FROM_OBJECT_mat4,
-        color_texture_program->Position_vec4,
-        color_texture_program->Color_vec4,
-        color_texture_program->TexCoord_vec2);
-    return ret; });
-
-Load<UIRenderer> radar_text(LoadTagDefault, []() -> UIRenderer const *
-                            {
-	UIRenderer *ret = new UIRenderer(data_path("DejaVuSans.ttf").c_str(), 24);
-    ret->init(1280, 720,
-        color_texture_program->program,
-        color_texture_program->CLIP_FROM_OBJECT_mat4,
-        color_texture_program->Position_vec4,
-        color_texture_program->Color_vec4,
-        color_texture_program->TexCoord_vec2);
-    return ret; });
-
-// static int font_id = -1;
-
-Load<Sound::Sample> Submarine_Moving(LoadTagEarly, []() -> Sound::Sample const *
-                                     { return new Sound::Sample(data_path("sub_moving.wav")); });
 
 PlayMode::PlayMode(Client &client_) : scene(*prototype_scene), radar(this), client(client_)
 {
@@ -149,10 +53,9 @@ PlayMode::PlayMode(Client &client_) : scene(*prototype_scene), radar(this), clie
     //     font_id = text_engine->load_font(data_path(path), 24);
     // }
     // int w, h;
-    text_overlays.emplace_back(ui_texts.value); // GUI
-
+    text_overlays.emplace_back(renderer_gui.value); // GUI
     // text_overlays[GUI].update_text("test", "test", glm::vec2(500, 400), UIOverlay::BottomLeft);
-    text_overlays.emplace_back(radar_text.value); // RADAR
+    text_overlays.emplace_back(renderer_radar.value); // RADAR
     // text_overlays[RADAR].update_image("test", *tex_radar_result, glm::vec2(100, 100), glm::vec2(100, 100));
 }
 
@@ -210,6 +113,48 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
             controls.radar.pressed = true;
             return true;
         }
+        else if (evt.key.key == SDLK_Q)
+        {
+            controls.rotate_left.downs += 1;
+            controls.rotate_left.pressed = true;
+            return true;
+        }
+        else if (evt.key.key == SDLK_R)
+        {
+            controls.rotate_right.downs += 1;
+            controls.rotate_right.pressed = true;
+            return true;
+        }
+        else if (evt.key.key == SDLK_1)
+        {
+            controls.num1.downs += 1;
+            controls.num1.pressed = true;
+            return true;
+        }
+        else if (evt.key.key == SDLK_2)
+        {
+            controls.num2.downs += 1;
+            controls.num2.pressed = true;
+            return true;
+        }
+        else if (evt.key.key == SDLK_3)
+        {
+            controls.num3.downs += 1;
+            controls.num3.pressed = true;
+            return true;
+        }
+        else if (evt.key.key == SDLK_4)
+        {
+            controls.num4.downs += 1;
+            controls.num4.pressed = true;
+            return true;
+        }
+        else if (evt.key.key == SDLK_L)
+        {
+            controls.light.downs += 1;
+            controls.light.pressed = true;
+            return true;
+        }
     }
     else if (evt.type == SDL_EVENT_KEY_UP)
     {
@@ -241,6 +186,41 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
         else if (evt.key.key == SDLK_R)
         {
             controls.radar.pressed = false;
+            return true;
+        }
+        else if (evt.key.key == SDLK_Q)
+        {
+            controls.rotate_left.pressed = false;
+            return true;
+        }
+        else if (evt.key.key == SDLK_E)
+        {
+            controls.rotate_right.pressed = false;
+            return true;
+        }
+        else if (evt.key.key == SDLK_1)
+        {
+            controls.num1.pressed = false;
+            return true;
+        }
+        else if (evt.key.key == SDLK_2)
+        {
+            controls.num2.pressed = false;
+            return true;
+        }
+        else if (evt.key.key == SDLK_3)
+        {
+            controls.num3.pressed = false;
+            return true;
+        }
+        else if (evt.key.key == SDLK_4)
+        {
+            controls.num4.pressed = false;
+            return true;
+        }
+        else if (evt.key.key == SDLK_L)
+        {
+            controls.light.pressed = false;
             return true;
         }
     }
@@ -308,7 +288,14 @@ void PlayMode::update_control(float elapsed)
     controls.up.downs = 0;
     controls.down.downs = 0;
     controls.jump.downs = 0;
+    controls.light.downs = 0;
     controls.radar.downs = 0;
+    controls.num1.downs = 0;
+    controls.num2.downs = 0;
+    controls.num3.downs = 0;
+    controls.num4.downs = 0;
+    controls.rotate_left.downs = 0;
+    controls.rotate_right.downs = 0;
 }
 
 void PlayMode::update_connection(float elapsed)
@@ -342,8 +329,8 @@ void PlayMode::update_radar(float elapsed)
     radar_timer -= elapsed;
     if (radar_timer < 0)
     {
-        radar_timer = Radar::RADAR_INTERVAL;
-        radar.scan(local_player, Radar::RADAR_RANGE, Radar::RADAR_RAY_COUNT);
+        radar_timer = local_player_data().normal_radar_interval;
+        radar.scan(local_player, local_player_data().normal_radar_range, Radar::RADAR_RAY_COUNT);
     }
     radar.update(elapsed);
 }
@@ -458,16 +445,21 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
     }
 
     // player spot light
-    {
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_ONE, GL_ONE);
-        glDepthFunc(GL_EQUAL);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE, GL_ONE);
+    glDepthFunc(GL_EQUAL);
 
-        glm::vec3 spot_light_pos(player_pos.x, player_pos.y, 0.0f);
+    for (auto data : player_data)
+    {
+        if (!data.second.light_on)
+            continue;
+        auto player = get_object(data.first);
+
+        glm::vec3 spot_light_pos(player.position.x, player.position.y, 0.0f);
         glm::vec3 spot_light_energy(5.0f, 5.0f, 5.0f);
 
         // glm::vec3 spot_light_dir(1.0f, 0.0f, 0.0f);
-        glm::vec3 spot_light_dir(player_data[local_player->id].player_facing ? 1.0f : -1.0f, 0.0f, 0.0f);
+        glm::vec3 spot_light_dir(data.second.player_facing ? 1.0f : -1.0f, 0.0f, 0.0f);
         spot_light_dir = glm::normalize(spot_light_dir);
         float cos_cutoff = std::cos(cutoff);
 
@@ -480,9 +472,9 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
         glUseProgram(0);
 
         scene.draw(*camera);
-
-        glDisable(GL_BLEND);
     }
+
+    glDisable(GL_BLEND);
 
     draw_overlay(drawable_size);
 
@@ -567,7 +559,7 @@ bool PlayMode::recv_state_message(Connection *connection_)
             drawable->second->transform->scale = glm::vec3(obj.scale, 1);
         }
     }
-
+    // receive player data
     uint8_t player_data_count;
     read(&player_data_count);
     for (uint8_t i = 0; i < player_data_count; ++i)
@@ -578,6 +570,8 @@ bool PlayMode::recv_state_message(Connection *connection_)
         data.receive(&at, recv_buffer);
         player_data[player_id] = data;
     }
+    // receive level data
+    level_data.receive(&at, recv_buffer);
 
     if (at != size)
     {
@@ -613,6 +607,11 @@ glm::vec2 PlayMode::get_screen_size() const
     return glm::vec2(w, h);
 }
 
+UIOverlay &PlayMode::get_overlay(int id)
+{
+    return text_overlays[id];
+}
+
 std::vector<NetworkObject> PlayMode::get_objects(ObjectType type) const
 {
     std::vector<NetworkObject> ret;
@@ -625,4 +624,17 @@ std::vector<NetworkObject> PlayMode::get_objects(ObjectType type) const
         }
     }
     return ret;
+}
+
+NetworkObject PlayMode::get_object(uint32_t id) const
+{
+    NetworkObject o;
+    for (auto &obj : network_objects)
+    {
+        if (obj.id == id)
+        {
+            return obj;
+        }
+    }
+    return o;
 }

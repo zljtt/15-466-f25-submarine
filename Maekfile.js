@@ -161,7 +161,8 @@ const client_names = [
     maek.CPP('load_opus.cpp'),
     maek.CPP('TextEngine.cpp'),
     maek.CPP('Radar.cpp'),
-    maek.CPP('UI.cpp')
+    maek.CPP('UI.cpp'),
+    maek.CPP('Registry.cpp')
 
 ];
 

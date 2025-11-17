@@ -328,7 +328,7 @@ void UIOverlay::update_data()
 
     for (auto t : texts)
     {
-        renderer->update_text_data(data, t.second.text, renderer->width, renderer->height, t.second.pos.x, t.second.pos.y);
+        renderer->update_text_data(data, t.second.text, renderer->width, renderer->height, static_cast<int>(t.second.pos.x), static_cast<int>(t.second.pos.y));
     }
     renderer->upload_pixels(data, renderer->width, renderer->height);
 }

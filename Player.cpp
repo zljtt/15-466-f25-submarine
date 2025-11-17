@@ -152,7 +152,7 @@ void Player::update_control(float elapsed, Game *game)
     {
         if (data.super_radar_exposure)
         {
-            game->level.revealed_objects.emplace_back(id, 0, SUPER_RADAR_EXPOSURE_TIME);
+            game->level.revealed_objects.emplace_back(id, 0.0f, static_cast<float>(SUPER_RADAR_EXPOSURE_TIME));
         }
     }
     if (controls.light.downs)

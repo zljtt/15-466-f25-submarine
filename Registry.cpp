@@ -105,3 +105,17 @@ Load<UIRenderer> renderer_radar(LoadTagDefault, []() -> UIRenderer const *
 // ============= SOUND =============
 Load<Sound::Sample> Submarine_Moving(LoadTagEarly, []() -> Sound::Sample const *
                                      { return new Sound::Sample(data_path("sub_moving.wav")); });
+Load<Sound::Sample> Submarine_Start(LoadTagEarly, []() -> Sound::Sample const *
+                                     { return new Sound::Sample(data_path("sub_start.wav")); });
+Load<Sound::Sample> Submarine_Stop(LoadTagEarly, []() -> Sound::Sample const *
+                                     { return new Sound::Sample(data_path("sub_stop.wav")); });
+Load<Sound::Sample> Submarine_Hit(LoadTagEarly, []() -> Sound::Sample const *
+                                     { return new Sound::Sample(data_path("sub_hit.wav")); });
+Load<Sound::Sample> Submarine_Scan1(LoadTagEarly, []() -> Sound::Sample const *
+                                     { return new Sound::Sample(data_path("sub_scan1.wav")); });
+Load<Sound::Sample> Submarine_Scan2(LoadTagEarly, []() -> Sound::Sample const *
+                                     { return new Sound::Sample(data_path("sub_scan2.wav")); }); 
+Load<Sound::Sample> Submarine_Scan3(LoadTagEarly, []() -> Sound::Sample const *
+                                     { return new Sound::Sample(data_path("sub_scan3.wav")); });
+Load<Sound::Sample> Submarine_Scan_Enemy(LoadTagEarly, []() -> Sound::Sample const *
+                                     { return new Sound::Sample(data_path("sub_scan_enemy.wav")); });                                                                                                                                                                                                                  

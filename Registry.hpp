@@ -31,3 +31,10 @@ extern Load<UIRenderer> renderer_gui;
 extern Load<UIRenderer> renderer_radar;
 
 extern Load<Sound::Sample> Submarine_Moving;
+extern Load<Sound::Sample> Submarine_Start;
+extern Load<Sound::Sample> Submarine_Stop;
+extern Load<Sound::Sample> Submarine_Hit;
+extern Load<Sound::Sample> Submarine_Scan1;
+extern Load<Sound::Sample> Submarine_Scan2;
+extern Load<Sound::Sample> Submarine_Scan3;
+extern Load<Sound::Sample> Submarine_Scan_Enemy;

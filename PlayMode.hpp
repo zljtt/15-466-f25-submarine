@@ -54,14 +54,15 @@ struct PlayMode : Mode
 
     // sounds
 
+    //sounds that need multiple instances need to be stored in unordered maps mapping player id to sound instance
     std::unordered_map<uint32_t, std::shared_ptr<Sound::PlayingSample>> sub_moving;
+    std::unordered_map<uint32_t, std::shared_ptr<Sound::PlayingSample>> sub_start;
+    std::unordered_map<uint32_t, std::shared_ptr<Sound::PlayingSample>> sub_stop;
 
-    std::shared_ptr<Sound::PlayingSample> sub_start;
-    std::shared_ptr<Sound::PlayingSample> sub_stop;
     std::shared_ptr<Sound::PlayingSample> flag_spawned;
     std::shared_ptr<Sound::PlayingSample> sub_hit;
     std::shared_ptr<Sound::PlayingSample> rad_scan;
-    std::shared_ptr<Sound::PlayingSample> rad_detect;
+    std::shared_ptr<Sound::PlayingSample> rad_detect_enemy;
 
     // helper for
     bool toPlay(uint8_t sc1, SoundCues sc2)

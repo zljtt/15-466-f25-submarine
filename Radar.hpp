@@ -64,7 +64,9 @@ struct Radar
         client_game = playMode;
         std::random_device rng;
         gen = std::mt19937(rng());
-        rand_size = std::uniform_int_distribution<int>(-RADAR_POINT_SIZE * 0.1f, RADAR_POINT_SIZE * 0.1f);
+        int lo = static_cast<int>(-RADAR_POINT_SIZE * 0.1f);
+        int hi = static_cast<int>( RADAR_POINT_SIZE * 0.1f);
+        rand_size = std::uniform_int_distribution<int>(lo, hi);
         rand_float = std::uniform_real_distribution<float>(0.0f, 1.0f);
     }
 

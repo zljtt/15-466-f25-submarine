@@ -60,6 +60,8 @@ PlayMode::PlayMode(Client &client_) : scene(*prototype_scene), radar(this), clie
     // text_overlays[GUI].update_text("test", "test", glm::vec2(500, 400), UIOverlay::BottomLeft);
     text_overlays.emplace_back(renderer_radar.value); // RADAR
     // text_overlays[RADAR].update_image("test", *tex_radar_result, glm::vec2(100, 100), glm::vec2(100, 100));
+
+
 }
 
 PlayMode::~PlayMode()
@@ -254,20 +256,28 @@ void PlayMode::execute_network_soundcues(ObjectType type, uint8_t sc, glm::vec3 
 {
     if (type == ObjectType::Player)
     {
+
         if (toPlay(sc, SoundCues::Start))
         {
             // std::cout << "start engine" << id << std::endl;
             if (sub_moving.find(id) == sub_moving.end())
-                sub_moving[id] = Sound::loop_3D(*Submarine_Moving, 0.0f, pos, 10.0f);
-            sub_moving[id]->set_volume(1.0f);
-        }
+                sub_moving[id] = Sound::loop_3D(*Submarine_Moving, 0.0f, pos - glm::vec3(local_player->position, 0), 8.0f);
+            sub_moving[id]->set_volume(0.1f,1.0f);
+            sub_start[id] = Sound::play_3D(*Submarine_Start,2.5f, pos - glm::vec3(local_player->position, 0), 8.0f);
+        }   
         if (toPlay(sc, SoundCues::Stop))
         {
             // std::cout << "stop engine" << id << std::endl;
-            sub_moving[id]->set_volume(0.0f);
+            sub_stop[id] = Sound::play_3D(*Submarine_Stop,2.5f, pos - glm::vec3(local_player->position, 0), 8.0f);
+            sub_moving[id]->set_volume(0.0f,1.0f);
         }
         if (toPlay(sc, SoundCues::Hit))
-        {
+        {   
+            if(sub_hit && !sub_hit->stopped){
+                return;
+            }
+            sub_hit = Sound::play_3D(*Submarine_Hit, 5.0f, pos - glm::vec3(local_player->position, 0), 8.0f);
+
         }
         if (toPlay(sc, SoundCues::GetPoint))
         {
@@ -358,6 +368,7 @@ void PlayMode::update_camera(float elapsed)
 void PlayMode::update_sound(float elapsed)
 {
     // go through all the network objects to see which has a sound to play
+    Sound::listener.set_position_right(glm::vec3(local_player->position,0), glm::vec3(1,0,0), 1.0f / 60.0f);
 
     for (auto &netObj : network_objects)
     {

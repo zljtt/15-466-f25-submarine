@@ -20,6 +20,7 @@
 #include <deque>
 #include <array>
 
+
 struct PlayMode : Mode
 {
     // UI keys
@@ -103,11 +104,14 @@ struct PlayMode : Mode
     void draw_overlay(glm::uvec2 const &drawable_size);
     glm::vec2 local_player_pos();
 
-    float water_surface_y = 220.0f;
-    float atten_speed = 0.002f;
+    float water_surface_y = 200.0f;
+    float max_depth = 100.0f;
+    glm::vec3 base_water_color = glm::vec3(0.0f, 0.06f, 0.12f);
+    //parameter: remaining energy percentage, depth
+    float k = -std::log(0.1f) / 50.0f;
+
     float cutoff = glm::radians(20.0f);
-    glm::vec2 prev_player_pos = glm::vec2(0.0f);
-    float spot_light_dir_x = 0.0f;
+    // std::unordered_map<uint32_t, Scene::Transform *> light_mesh_data;
 
     // used by client:
     // set game state from data in connection buffer

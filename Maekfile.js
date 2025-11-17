@@ -154,6 +154,7 @@ const client_names = [
     maek.CPP('Prefab.cpp'),
     maek.CPP('PlayMode.cpp'),
     maek.CPP('LitColorTextureProgram.cpp'),
+    maek.CPP('BasicMaterialForwardProgram.cpp'),
     maek.CPP('ColorTextureProgram.cpp'),  //not used right now, but you might want it
     maek.CPP('UIRenderer.cpp'),
     maek.CPP('Sound.cpp'),

@@ -71,6 +71,17 @@
         "xtree": "cpp",
         "xutility": "cpp",
         "__locale": "cpp",
-        "string_view": "cpp"
+        "string_view": "cpp",
+        "__bit_reference": "cpp",
+        "__split_buffer": "cpp",
+        "__tree": "cpp",
+        "__verbose_abort": "cpp",
+        "__hash_table": "cpp",
+        "bitset": "cpp",
+        "cwctype": "cpp",
+        "execution": "cpp",
+        "mutex": "cpp",
+        "print": "cpp",
+        "variant": "cpp"
     }
 }

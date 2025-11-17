@@ -62,6 +62,8 @@ int main(int argc, char **argv)
         std::vector<GameObject> obstacles;
         auto on_drawable = [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name)
         {
+            if (mesh_name == "BackgroundPlane") return;
+            
             // create collision box
             game.static_obstacles.emplace_back(transform->position, transform->scale);
             obstacles.emplace_back(transform->position, transform->scale);

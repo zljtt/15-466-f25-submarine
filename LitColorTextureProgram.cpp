@@ -77,6 +77,10 @@ LitColorTextureProgram::LitColorTextureProgram() {
 		"uniform float LIGHT_CUTOFF;\n"
 		//texture tiling:
 		"uniform float TILES_PER_UNIT;\n"
+		//water scattering:
+		"uniform vec3 WATER_COLOR;\n"
+		"uniform float WATER_DENSITY;\n"
+		"uniform vec3 CAMERA_POSITION;\n"
 		"in vec3 position;\n"
 		"in vec3 normal;\n"
 		"in vec4 color;\n"
@@ -111,7 +115,18 @@ LitColorTextureProgram::LitColorTextureProgram() {
 		//texture tiling:
 		"	vec2 worldUV = position.xy * TILES_PER_UNIT;\n"
 		"	vec4 albedo = texture(TEX, worldUV) * color;\n"
-		"	fragColor = vec4(e*albedo.rgb, albedo.a);\n"
+
+		"	vec3 lit = e * albedo.rgb;\n"
+		"	vec3 camToP = position - CAMERA_POSITION;\n"
+		"	float dist = length(camToP);\n"
+		"	float transmittance = exp(-WATER_DENSITY * dist);\n"
+		"	vec3 attenuated = lit * transmittance;\n"
+		"	vec3 inScatter = WATER_COLOR * (1.0 - transmittance);\n"
+		"	vec3 finalRGB = attenuated + inScatter;\n"
+		// "	vec3 finalRGB = attenuated;\n"
+
+		" fragColor = vec4(finalRGB, albedo.a);\n"
+		// "	fragColor = vec4(e*albedo.rgb, albedo.a);\n"
 		/* DEBUG: check color output linearity:
 		"	float t = random(gl_FragCoord.xy/1280.0);\n"
 		"	float amt = fract(gl_FragCoord.x/512.0);\n"
@@ -150,12 +165,17 @@ LitColorTextureProgram::LitColorTextureProgram() {
 
 	GLuint TEX_sampler2D = glGetUniformLocation(program, "TEX");
 	TILES_PER_UNIT_float = glGetUniformLocation(program, "TILES_PER_UNIT");
+	WATER_COLOR_vec3 = glGetUniformLocation(program, "WATER_COLOR");
+	WATER_DENSITY_float = glGetUniformLocation(program, "WATER_DENSITY");
+	CAMERA_POSITION_vec3 = glGetUniformLocation(program, "CAMERA_POSITION");
 
 	//set TEX to always refer to texture binding zero:
 	glUseProgram(program); //bind program -- glUniform* calls refer to this program now
 
 	glUniform1i(TEX_sampler2D, 0); //set TEX to sample from GL_TEXTURE0
 	glUniform1f(TILES_PER_UNIT_float, 1.0f);
+	glUniform3f(WATER_COLOR_vec3, 0.0f, 0.035f, 0.06f);
+	glUniform1f(WATER_DENSITY_float, 0.05f);
 
 	glUseProgram(0); //unbind program -- glUniform* calls refer to ??? now
 }

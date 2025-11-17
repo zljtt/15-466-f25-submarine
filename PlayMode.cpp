@@ -14,6 +14,7 @@
 
 #include "LitColorTextureProgram.hpp"
 #include "ColorTextureProgram.hpp"
+#include "BasicMaterialForwardProgram.hpp"
 
 #include <glm/gtc/type_ptr.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
@@ -36,6 +37,8 @@ PlayMode::PlayMode(Client &client_) : scene(*prototype_scene), radar(this), clie
     std::vector<GameObject> obstacles;
     auto on_drawable = [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name)
     {
+        if (mesh_name == "BackgroundPlane") return;
+
         // create collision box
         // local_obstacles.emplace_back(transform->position, transform->scale);
         obstacles.emplace_back(transform->position, transform->scale);
@@ -153,6 +156,17 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
         {
             controls.light.downs += 1;
             controls.light.pressed = true;
+            return true;
+        }
+        //
+        else if (evt.key.key == SDLK_U)
+        {
+            camera->transform->position.z -= 10.0f;
+            return true;
+        }
+        else if (evt.key.key == SDLK_J)
+        {
+            camera->transform->position.z += 10.0f;
             return true;
         }
     }
@@ -384,6 +398,10 @@ void PlayMode::update_spotlight(float elapsed)
     //     spot_light_dir_x = 1.0f;
     // else if (velocity.x < -1e-3f)
     //     spot_light_dir_x = -1.0f;
+    
+    // for (auto p: player_data) {
+    //     light_mesh_data[p.first] = network_drawables[p.first]->transform;
+    // }
 }
 
 void PlayMode::draw(glm::uvec2 const &drawable_size)
@@ -393,7 +411,24 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
 
     glm::vec2 player_pos = local_player_pos();
     float depth = glm::max(0.0f, water_surface_y - player_pos.y);
-    float atten = glm::clamp(1.0f - atten_speed * depth, 0.0f, 1.0f);
+    
+    // float t = glm::clamp(depth / max_depth, 0.0f, 1.0f);
+    // float atten = (1.0f - t) * (1.0f - t);
+    // float atten = pow((1.0f - t), 3);
+    float atten = std::exp(-k * depth);
+    float complete_fade_factor = 1.0f - glm::smoothstep(max_depth, max_depth + 20.0f, depth);
+    atten *= complete_fade_factor;
+    glm::vec3 water_color = base_water_color * atten;
+
+    // std::cout << "player y: " << player_pos.y << std::endl;
+    // std::cout << "depth: " << depth << std::endl;
+    // std::cout << "atten: " << atten << std::endl;
+
+    // std::cout << "camera transform: " 
+    // << camera->transform->position.x << " "
+    // << camera->transform->position.y << " "
+    // << camera->transform->position.z << " "
+    // << std::endl;
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClearDepth(1.0f); // 1.0 is actually the default value to clear the depth buffer to, but FYI you can change it.
@@ -403,52 +438,77 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
     glDepthMask(GL_TRUE);
     glDepthFunc(GL_LESS);
 
-    glUseProgram(lit_color_texture_program->program);
-    glUniform1f(lit_color_texture_program->TILES_PER_UNIT_float, 0.1f);
-    glUniform3fv(lit_color_texture_program->CAMERA_POSITION_vec3, 1, glm::value_ptr(camera->transform->position + glm::vec3(0.0f, 0.0f, -10.0f)));
-    glUseProgram(0);
+    //multi-pass lighting:
+    // glUseProgram(lit_color_texture_program->program);
+    // glUniform1f(lit_color_texture_program->TILES_PER_UNIT_float, 0.1f);
+    // glUniform3fv(lit_color_texture_program->WATER_COLOR_vec3, 1, glm::value_ptr(water_color));
+    // glUniform3fv(lit_color_texture_program->CAMERA_POSITION_vec3, 1, glm::value_ptr(camera->transform->position + glm::vec3(0.0f, 0.0f, 0.0f)));
+    // glUseProgram(0);
+    
+    //forward rendering:
+    glUseProgram(basic_material_forward_program->program);
+    glUniform1f(basic_material_forward_program->TILES_PER_UNIT_float, 0.1f);
+    glUniform3fv(basic_material_forward_program->WATER_COLOR_vec3, 1, glm::value_ptr(water_color));
+    glUniform3fv(basic_material_forward_program->CAMERA_POSITION_vec3, 1, glm::value_ptr(camera->transform->position + glm::vec3(0.0f, 0.0f, 0.0f)));
+    glUniform3fv(basic_material_forward_program->EYE_vec3, 1, glm::value_ptr(camera->transform->position));
 
+    std::vector<GLint> light_types;
+    std::vector<glm::vec3> light_poss;
+    std::vector<glm::vec3> light_dirs;
+    std::vector<glm::vec3> light_energies;
+    std::vector<float> light_cutoffs;
     // environment light
     {
         glm::vec3 hemi_light_dir(0.0f, 0.0f, -1.0f);
         glm::vec3 surface_light_energy(1.0f, 1.0f, 0.95f);
         glm::vec3 underwater_light_energy = surface_light_energy * atten;
 
-        glUseProgram(lit_color_texture_program->program);
-        glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 1);
-        glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(hemi_light_dir));
-        glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(underwater_light_energy));
-        glUseProgram(0);
+        light_types.push_back(1);
+        light_poss.push_back(glm::vec3(0.0f));
+        light_dirs.push_back(hemi_light_dir);
+        light_energies.push_back(underwater_light_energy);
+        light_cutoffs.push_back(0.0f);
 
-        scene.draw(*camera);
+        // glUseProgram(lit_color_texture_program->program);
+        // glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 1);
+        // glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(hemi_light_dir));
+        // glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(underwater_light_energy));
+        // glUseProgram(0);
+
+        // scene.draw(*camera);
     }
 
     // player point light
     {
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_ONE, GL_ONE);
-        glDepthFunc(GL_EQUAL);
-
         glm::vec3 point_light_pos(player_pos.x, player_pos.y, 1.5f);
         glm::vec3 point_light_energy(0.3f, 0.3f, 0.3f);
         // glm::vec3 point_light_energy(0.0f, 0.0f, 0.0f);
 
-        glUseProgram(lit_color_texture_program->program);
-        glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 0);
-        glUniform3fv(lit_color_texture_program->LIGHT_LOCATION_vec3, 1, glm::value_ptr(point_light_pos));
-        glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(point_light_energy));
-        glUseProgram(0);
+        light_types.push_back(0); // point
+        light_poss.push_back(point_light_pos);
+        light_dirs.push_back(glm::vec3(0.0f));
+        light_energies.push_back(point_light_energy);
+        light_cutoffs.push_back(0.0f);
 
-        scene.draw(*camera);
+        // glEnable(GL_BLEND);
+        // glBlendFunc(GL_ONE, GL_ONE);
+        // glDepthFunc(GL_EQUAL);
 
-        glDisable(GL_BLEND);
+        // glUseProgram(lit_color_texture_program->program);
+        // glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 0);
+        // glUniform3fv(lit_color_texture_program->LIGHT_LOCATION_vec3, 1, glm::value_ptr(point_light_pos));
+        // glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(point_light_energy));
+        // glUseProgram(0);
+
+        // scene.draw(*camera);
+
+        // glDisable(GL_BLEND);
     }
 
-    // player spot light
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_ONE, GL_ONE);
-    glDepthFunc(GL_EQUAL);
-
+    // player spot light:
+    // glEnable(GL_BLEND);
+    // glBlendFunc(GL_ONE, GL_ONE);
+    // glDepthFunc(GL_EQUAL);
     for (auto data : player_data)
     {
         if (!data.second.light_on)
@@ -456,26 +516,47 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
         auto player = get_object(data.first);
 
         glm::vec3 spot_light_pos(player.position.x, player.position.y, 0.0f);
-        glm::vec3 spot_light_energy(5.0f, 5.0f, 5.0f);
+        glm::vec3 spot_light_energy(250.0f, 250.0f, 250.0f);
 
-        // glm::vec3 spot_light_dir(1.0f, 0.0f, 0.0f);
         glm::vec3 spot_light_dir(data.second.player_facing ? 1.0f : -1.0f, 0.0f, 0.0f);
         spot_light_dir = glm::normalize(spot_light_dir);
         float cos_cutoff = std::cos(cutoff);
 
-        glUseProgram(lit_color_texture_program->program);
-        glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 2);
-        glUniform3fv(lit_color_texture_program->LIGHT_LOCATION_vec3, 1, glm::value_ptr(spot_light_pos));
-        glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(spot_light_dir));
-        glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(spot_light_energy));
-        glUniform1f(lit_color_texture_program->LIGHT_CUTOFF_float, cos_cutoff);
-        glUseProgram(0);
+        light_types.push_back(2); // spot
+        light_poss.push_back(spot_light_pos);
+        light_dirs.push_back(spot_light_dir);
+        light_energies.push_back(spot_light_energy);
+        light_cutoffs.push_back(cos_cutoff);
 
-        scene.draw(*camera);
+        // glUseProgram(lit_color_texture_program->program);
+        // glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 2);
+        // glUniform3fv(lit_color_texture_program->LIGHT_LOCATION_vec3, 1, glm::value_ptr(spot_light_pos));
+        // glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(spot_light_dir));
+        // glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(spot_light_energy));
+        // glUniform1f(lit_color_texture_program->LIGHT_CUTOFF_float, cos_cutoff);
+        // glUseProgram(0);
+
+        // scene.draw(*camera);
+    }
+    // glDisable(GL_BLEND);
+
+    GLsizei light_count = static_cast<GLsizei>(light_types.size());
+
+    if (light_count > BasicMaterialForwardProgram::MaxLights) {
+        light_count = BasicMaterialForwardProgram::MaxLights;
     }
 
-    glDisable(GL_BLEND);
+    glUniform1ui(basic_material_forward_program->LIGHTS_uint, light_count); 
+    glUniform1iv(basic_material_forward_program->LIGHT_TYPE_int_array, light_count, light_types.data());
+    glUniform3fv(basic_material_forward_program->LIGHT_LOCATION_vec3_array, light_count, glm::value_ptr(light_poss[0]));
+    glUniform3fv(basic_material_forward_program->LIGHT_DIRECTION_vec3_array, light_count, glm::value_ptr(light_dirs[0]));
+    glUniform3fv(basic_material_forward_program->LIGHT_ENERGY_vec3_array, light_count, glm::value_ptr(light_energies[0]));
+    glUniform1fv(basic_material_forward_program->LIGHT_CUTOFF_float_array, light_count, light_cutoffs.data());
+    glUseProgram(0);
 
+
+    scene.draw(*camera);
+    
     draw_overlay(drawable_size);
 
     GL_ERRORS();
@@ -550,6 +631,7 @@ bool PlayMode::recv_state_message(Connection *connection_)
         if (drawable == network_drawables.end())
         {
             network_drawables[obj.id] = create_drawable_at(scene, obj.type, glm::vec3(obj.position, 0), glm::vec3(obj.scale, 1));
+
         }
         // update drawable position
         else

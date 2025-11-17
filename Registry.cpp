@@ -4,6 +4,7 @@
 #include "load_save_png.hpp"
 #include "LitColorTextureProgram.hpp"
 #include "ColorTextureProgram.hpp"
+#include "BasicMaterialForwardProgram.hpp"
 
 GLuint meshes_for_lit_color_texture_program = 0;
 
@@ -56,7 +57,8 @@ Load<Sprite> tex_radar_radar(LoadTagDefault, []() -> Sprite const *
 Load<MeshBuffer> prototype_scene_meshes(LoadTagDefault, []() -> MeshBuffer const *
                                         {
 	MeshBuffer const *ret = new MeshBuffer(data_path("prototype_scene.pnct"));
-	meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
+	// meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
+    meshes_for_lit_color_texture_program = ret->make_vao_for_program(basic_material_forward_program->program);
 	return ret; });
 
 Load<Scene> prototype_scene(LoadTagDefault, []() -> Scene const *
@@ -68,7 +70,8 @@ Load<Scene> prototype_scene(LoadTagDefault, []() -> Scene const *
         scene.drawables.emplace_back(transform);
         Scene::Drawable &drawable = scene.drawables.back();
 
-        drawable.pipeline = lit_color_texture_program_pipeline;
+        // drawable.pipeline = lit_color_texture_program_pipeline;
+        drawable.pipeline = basic_material_forward_program_pipeline;
         drawable.pipeline.vao = meshes_for_lit_color_texture_program;
         drawable.pipeline.type = mesh.type;
         drawable.pipeline.start = mesh.start;

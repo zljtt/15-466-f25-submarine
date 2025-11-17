@@ -26,6 +26,7 @@ extern Load<MeshBuffer> prototype_prefab_meshes;
 extern Load<Prefab> prefab_player;
 extern Load<Prefab> prefab_torpedo;
 extern Load<Prefab> prefab_flag;
+// extern Load<Prefab> prefab_spotlight_mesh;
 
 static inline Scene::Drawable *create_drawable_at(Scene &scene, ObjectType type, glm::vec3 pos, glm::vec3 scale)
 {

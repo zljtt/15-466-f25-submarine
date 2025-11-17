@@ -113,6 +113,188 @@ void Scene::draw(Camera const &camera) const
     draw(clip_from_world, light_from_world);
 }
 
+// void Scene::draw(glm::mat4 const &clip_from_world, glm::mat4x3 const &light_from_world) const
+// {
+//     // glEnable(GL_DEPTH_TEST);
+//     // glDepthMask(GL_TRUE);
+//     // glDisable(GL_BLEND);
+
+//     // Iterate through all drawables, sending each one to OpenGL:
+//     for (auto const &drawable : drawables)
+//     {
+//         if (drawable.pipeline.is_transparent) continue;
+
+//         // Reference to drawable's pipeline for convenience:
+//         Scene::Drawable::Pipeline const &pipeline = drawable.pipeline;
+
+//         // skip any drawables without a shader program set:
+//         if (pipeline.program == 0)
+//             continue;
+//         // skip any drawables that don't reference any vertex array:
+//         if (pipeline.vao == 0)
+//             continue;
+//         // skip any drawables that don't contain any vertices:
+//         if (pipeline.count == 0)
+//             continue;
+
+//         // Set shader program:
+//         glUseProgram(pipeline.program);
+
+//         // Set attribute sources:
+//         glBindVertexArray(pipeline.vao);
+
+//         // Configure program uniforms:
+
+//         // the object-to-world matrix is used in all three of these uniforms:
+//         assert(drawable.transform); // drawables *must* have a transform
+//         glm::mat4x3 world_from_object = drawable.transform->make_world_from_local();
+
+//         // CLIP_FROM_OBJECT takes vertices from object space to clip space:
+//         if (pipeline.CLIP_FROM_OBJECT_mat4 != -1U)
+//         {
+//             glm::mat4 clip_from_object = clip_from_world * glm::mat4(world_from_object);
+//             glUniformMatrix4fv(pipeline.CLIP_FROM_OBJECT_mat4, 1, GL_FALSE, glm::value_ptr(clip_from_object));
+//         }
+
+//         // the object-to-light matrix is used in the next two uniforms:
+//         glm::mat4x3 light_from_object = light_from_world * glm::mat4(world_from_object);
+
+//         // CLIP_FROM_OBJECT takes vertices from object space to light space:
+//         if (pipeline.LIGHT_FROM_OBJECT_mat4x3 != -1U)
+//         {
+//             glUniformMatrix4x3fv(pipeline.LIGHT_FROM_OBJECT_mat4x3, 1, GL_FALSE, glm::value_ptr(light_from_object));
+//         }
+
+//         // LIGHT_FROM_NORMAL takes normals from object space to light space:
+//         if (pipeline.LIGHT_FROM_NORMAL_mat3 != -1U)
+//         {
+//             glm::mat3 light_from_normal = glm::inverse(glm::transpose(glm::mat3(light_from_object)));
+//             glUniformMatrix3fv(pipeline.LIGHT_FROM_NORMAL_mat3, 1, GL_FALSE, glm::value_ptr(light_from_normal));
+//         }
+
+//         // set any requested custom uniforms:
+//         if (pipeline.set_uniforms)
+//             pipeline.set_uniforms();
+
+//         // set up textures:
+//         for (uint32_t i = 0; i < Drawable::Pipeline::TextureCount; ++i)
+//         {
+//             if (pipeline.textures[i].texture != 0)
+//             {
+//                 glActiveTexture(GL_TEXTURE0 + i);
+//                 glBindTexture(pipeline.textures[i].target, pipeline.textures[i].texture);
+//             }
+//         }
+
+//         // draw the object:
+//         glDrawArrays(pipeline.type, pipeline.start, pipeline.count);
+
+//         // un-bind textures:
+//         for (uint32_t i = 0; i < Drawable::Pipeline::TextureCount; ++i)
+//         {
+//             if (pipeline.textures[i].texture != 0)
+//             {
+//                 glActiveTexture(GL_TEXTURE0 + i);
+//                 glBindTexture(pipeline.textures[i].target, 0);
+//             }
+//         }
+//         glActiveTexture(GL_TEXTURE0);
+//     }
+
+//     glEnable(GL_BLEND);
+//     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+//     glDepthMask(GL_FALSE);
+
+//     for (auto const &drawable : drawables)
+//     {
+//         if (!drawable.pipeline.is_transparent) continue;
+
+//         // Reference to drawable's pipeline for convenience:
+//         Scene::Drawable::Pipeline const &pipeline = drawable.pipeline;
+
+//         // skip any drawables without a shader program set:
+//         if (pipeline.program == 0)
+//             continue;
+//         // skip any drawables that don't reference any vertex array:
+//         if (pipeline.vao == 0)
+//             continue;
+//         // skip any drawables that don't contain any vertices:
+//         if (pipeline.count == 0)
+//             continue;
+
+//         // Set shader program:
+//         glUseProgram(pipeline.program);
+
+//         // Set attribute sources:
+//         glBindVertexArray(pipeline.vao);
+
+//         // Configure program uniforms:
+
+//         // the object-to-world matrix is used in all three of these uniforms:
+//         assert(drawable.transform); // drawables *must* have a transform
+//         glm::mat4x3 world_from_object = drawable.transform->make_world_from_local();
+
+//         // CLIP_FROM_OBJECT takes vertices from object space to clip space:
+//         if (pipeline.CLIP_FROM_OBJECT_mat4 != -1U)
+//         {
+//             glm::mat4 clip_from_object = clip_from_world * glm::mat4(world_from_object);
+//             glUniformMatrix4fv(pipeline.CLIP_FROM_OBJECT_mat4, 1, GL_FALSE, glm::value_ptr(clip_from_object));
+//         }
+
+//         // the object-to-light matrix is used in the next two uniforms:
+//         glm::mat4x3 light_from_object = light_from_world * glm::mat4(world_from_object);
+
+//         // CLIP_FROM_OBJECT takes vertices from object space to light space:
+//         if (pipeline.LIGHT_FROM_OBJECT_mat4x3 != -1U)
+//         {
+//             glUniformMatrix4x3fv(pipeline.LIGHT_FROM_OBJECT_mat4x3, 1, GL_FALSE, glm::value_ptr(light_from_object));
+//         }
+
+//         // LIGHT_FROM_NORMAL takes normals from object space to light space:
+//         if (pipeline.LIGHT_FROM_NORMAL_mat3 != -1U)
+//         {
+//             glm::mat3 light_from_normal = glm::inverse(glm::transpose(glm::mat3(light_from_object)));
+//             glUniformMatrix3fv(pipeline.LIGHT_FROM_NORMAL_mat3, 1, GL_FALSE, glm::value_ptr(light_from_normal));
+//         }
+
+//         // set any requested custom uniforms:
+//         if (pipeline.set_uniforms)
+//             pipeline.set_uniforms();
+
+//         // set up textures:
+//         for (uint32_t i = 0; i < Drawable::Pipeline::TextureCount; ++i)
+//         {
+//             if (pipeline.textures[i].texture != 0)
+//             {
+//                 glActiveTexture(GL_TEXTURE0 + i);
+//                 glBindTexture(pipeline.textures[i].target, pipeline.textures[i].texture);
+//             }
+//         }
+
+//         // draw the object:
+//         glDrawArrays(pipeline.type, pipeline.start, pipeline.count);
+
+//         // un-bind textures:
+//         for (uint32_t i = 0; i < Drawable::Pipeline::TextureCount; ++i)
+//         {
+//             if (pipeline.textures[i].texture != 0)
+//             {
+//                 glActiveTexture(GL_TEXTURE0 + i);
+//                 glBindTexture(pipeline.textures[i].target, 0);
+//             }
+//         }
+//         glActiveTexture(GL_TEXTURE0);
+//     }
+
+//     glDisable(GL_BLEND);
+//     glDepthMask(GL_TRUE);
+    
+//     glUseProgram(0);
+//     glBindVertexArray(0);
+
+//     GL_ERRORS();
+// }
+
 void Scene::draw(glm::mat4 const &clip_from_world, glm::mat4x3 const &light_from_world) const
 {
 

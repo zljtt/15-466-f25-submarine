@@ -192,7 +192,7 @@ BasicMaterialForwardProgram::BasicMaterialForwardProgram() {
 	glUniform1f(TILES_PER_UNIT_float, 1.0f);
 	glUniform3f(WATER_COLOR_vec3, 0.0f, 0.35f, 0.6f);
 	// glUniform1f(WATER_DENSITY_float, 0.035f);
-	glUniform1f(WATER_DENSITY_float, 0.04f);
+	glUniform1f(WATER_DENSITY_float, 0.03f);
 
 	glUseProgram(0); //unbind program -- glUniform* calls refer to ??? now
 }

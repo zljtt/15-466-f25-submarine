@@ -42,6 +42,7 @@ struct PlayMode : Mode
     void update_radar(float elapsed);
     void update_camera(float elapsed);
     void update_sound(float elapsed);
+    void update_animation(float elapsed);
     void update_spotlight(float elapsed);
     void update_ui(float elapsed);
     virtual void draw(glm::uvec2 const &drawable_size) override;

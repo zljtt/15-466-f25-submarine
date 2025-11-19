@@ -28,7 +28,7 @@ struct Mesh {
 	glm::vec3 min = glm::vec3( std::numeric_limits< float >::infinity());
 	glm::vec3 max = glm::vec3(-std::numeric_limits< float >::infinity());
 };
-
+	
 struct MeshBuffer {
 	//construct from a file:
 	// note: will throw if file fails to read.

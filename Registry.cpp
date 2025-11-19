@@ -66,10 +66,13 @@ Load<Scene> prototype_scene(LoadTagDefault, []() -> Scene const *
     auto on_drawable = [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name) {
         if (mesh_name == "Player") return;
         if (mesh_name == "Torpedo") return;
+        if (mesh_name == "Propeller") return;
         Mesh const &mesh = prototype_scene_meshes->lookup(mesh_name);
         scene.drawables.emplace_back(transform);
         Scene::Drawable &drawable = scene.drawables.back();
 
+
+        std::cout<<" scene loading "<<mesh_name<<std::endl; 
         // drawable.pipeline = lit_color_texture_program_pipeline;
         drawable.pipeline = basic_material_forward_program_pipeline;
         drawable.pipeline.vao = meshes_for_lit_color_texture_program;

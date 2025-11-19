@@ -9,11 +9,11 @@ all : \
 
 
 
-$(DIST)/prototype.scene : prototype2.blend export-scene.py
-    $(BLENDER) --background --python export-scene.py -- "prototype2.blend:Scene" "$(DIST)/prototype.scene"
+$(DIST)/prototype.scene : prototype_map2.blend export-scene.py
+    $(BLENDER) --background --python export-scene.py -- "prototype_map2.blend:Scene" "$(DIST)/prototype.scene"
 
-$(DIST)/prototype_prefab.pnct : prototype2.blend export-meshes.py
-    $(BLENDER) --background --python export-meshes.py -- "prototype2.blend:Prefab" "$(DIST)/prototype_prefab.pnct" 
+$(DIST)/prototype_prefab.pnct : prototype_map2.blend export-meshes.py
+    $(BLENDER) --background --python export-meshes.py -- "prototype_map2.blend:Prefab" "$(DIST)/prototype_prefab.pnct" 
 
-$(DIST)/prototype_prefab.pnct : prototype2.blend export-meshes.py
-    $(BLENDER) --background --python export-meshes.py -- "prototype2.blend:Scene" "$(DIST)/prototype_prefab.pnct" 
+$(DIST)/prototype_scene.pnct : prototype_map2.blend export-meshes.py
+    $(BLENDER) --background --python export-meshes.py -- "prototype_map2.blend:Scene" "$(DIST)/prototype_scene.pnct" 

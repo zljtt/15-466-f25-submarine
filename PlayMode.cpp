@@ -256,7 +256,7 @@ void PlayMode::execute_network_soundcues(ObjectType type, uint8_t sc, glm::vec3 
 {
     if (type == ObjectType::Player)
     {
-
+        
         if (toPlay(sc, SoundCues::Start))
         {
             // std::cout << "start engine" << id << std::endl;
@@ -292,6 +292,7 @@ void PlayMode::update(float elapsed)
     update_radar(elapsed);
     update_camera(elapsed);
     update_sound(elapsed);
+    update_animation(elapsed);
     update_spotlight(elapsed);
     update_ui(elapsed);
 }
@@ -362,18 +363,46 @@ void PlayMode::update_radar(float elapsed)
 void PlayMode::update_camera(float elapsed)
 {
     glm::vec2 local_pos = network_drawables[local_player->id]->transform->position;
+
+    
     camera->transform->position = glm::vec3(local_pos.x, local_pos.y, camera->transform->position.z);
+}
+
+
+void PlayMode::update_animation(float elapsed){
+
+    //trivial turning animation 
+    glm::vec3 eulerAnglesDegrees = glm::vec3(180.0f, 0.0f, 0.0f);
+    glm::vec3 eulerAnglesRadians = glm::radians(eulerAnglesDegrees);
+    network_drawables[local_player->id]->transform->rotation = local_player_data().player_facing ? glm::quat(eulerAnglesRadians) : glm::quat(0,0,0,1);
+
+    for(auto p : player_data){
+        //animating propeller, the faster the player is moving, the more it spins
+        auto player = get_object(p.first);
+        float player_speed = glm::length(player.velocity);
+        if (player_speed > 0.01f){
+            size_t playerDrawable_count = network_drawables.count(p.first);
+            if(playerDrawable_count){
+                auto playerDrawable = network_drawables[p.first];
+                glm::quat rotation_x = glm::angleAxis(glm::radians(std::min(100.0f * player_speed * player_speed * elapsed , elapsed * 1000.0f)), glm::vec3(1.0f, 0.0f, 0.0f));             
+                playerDrawable->transform->child->rotation =  playerDrawable->transform->child->rotation * rotation_x;             
+            }
+        }
+    }
+
 }
 
 void PlayMode::update_sound(float elapsed)
 {
     // go through all the network objects to see which has a sound to play
     Sound::listener.set_position_right(glm::vec3(local_player->position,0), glm::vec3(1,0,0), 1.0f / 60.0f);
-
+    
     for (auto &netObj : network_objects)
     {
         if (netObj.sound_cues != 0)
         {
+            Scene::Transform * loc = network_drawables[local_player->id]->transform;
+            std::cout<<network_drawables[local_player->id]->pipeline.count<<" "<<loc->position.x<<" "<<loc->position.y<<" "<<loc->position.z<<loc->scale.x<<std::endl;
             execute_network_soundcues(netObj.type, netObj.sound_cues, glm::vec3(netObj.position, 0), netObj.id);
             // clear the sound_cues
             netObj.sound_cues = 0;
@@ -539,6 +568,9 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
         light_energies.push_back(spot_light_energy);
         light_cutoffs.push_back(cos_cutoff);
 
+
+
+
         // glUseProgram(lit_color_texture_program->program);
         // glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 2);
         // glUniform3fv(lit_color_texture_program->LIGHT_LOCATION_vec3, 1, glm::value_ptr(spot_light_pos));
@@ -616,13 +648,14 @@ bool PlayMode::recv_state_message(Connection *connection_)
         NetworkObject &obj = network_objects.back();
         if (obj.sound_cues != 0)
         {
-            std::cout << "what the fuck" << std::endl;
+            std::cout << "what the hec" << std::endl;
         };
         obj.receive(&at, recv_buffer);
         // find local player
         if (i == 0)
         {
             local_player = &obj;
+            
         }
         // find drawable
         auto drawable = network_drawables.find(obj.id);
@@ -642,7 +675,6 @@ bool PlayMode::recv_state_message(Connection *connection_)
         if (drawable == network_drawables.end())
         {
             network_drawables[obj.id] = create_drawable_at(scene, obj.type, glm::vec3(obj.position, 0), glm::vec3(obj.scale, 1));
-
         }
         // update drawable position
         else
@@ -651,6 +683,7 @@ bool PlayMode::recv_state_message(Connection *connection_)
             drawable->second->transform->position = glm::vec3(obj.position, 0);
             drawable->second->transform->scale = glm::vec3(obj.scale, 1);
         }
+        
     }
     // receive player data
     uint8_t player_data_count;

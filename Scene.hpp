@@ -38,6 +38,8 @@ struct Scene
         // The transform above may be relative to some parent transform:
         Transform *parent = nullptr;
 
+        Transform *child = nullptr;
+
         // It is often convenient to construct matrices representing this transformation:
         //  ..relative to its parent:
         glm::mat4x3 make_parent_from_local() const;

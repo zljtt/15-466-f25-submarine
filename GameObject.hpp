@@ -64,9 +64,9 @@ struct NetworkObject : GameObject
     // server side function to add a cue to send
     void add_sound_cue(uint8_t s)
     {
-        std::cout << "adding sound cue" << static_cast<int>(s) << "to" << static_cast<int>(sound_cues) << std::endl;
+        //std::cout << "adding sound cue" << static_cast<int>(s) << "to" << static_cast<int>(sound_cues) << std::endl;
         sound_cues |= s;
-        std::cout << "now " << id << " has " << static_cast<int>(sound_cues) << std::endl;
+        //std::cout << "now " << id << " has " << static_cast<int>(sound_cues) << std::endl;
     }
 
     // server only, set to true to mark this object as deleted

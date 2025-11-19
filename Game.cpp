@@ -29,6 +29,7 @@ void Game::init_player_spawn_info(Player *player)
 {
     player->data.spawn_pos = SpawnPos[next_player_number];
     player->position = SpawnPos[next_player_number];
+    player->scale.x = 2;
     next_player_number++;
 }
 

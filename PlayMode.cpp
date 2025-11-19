@@ -263,12 +263,17 @@ void PlayMode::execute_network_soundcues(ObjectType type, uint8_t sc, glm::vec3 
             if (sub_moving.find(id) == sub_moving.end())
                 sub_moving[id] = Sound::loop_3D(*Submarine_Moving, 0.0f, pos - glm::vec3(local_player->position, 0), 8.0f);
             sub_moving[id]->set_volume(0.1f,1.0f);
-            sub_start[id] = Sound::play_3D(*Submarine_Start,2.5f, pos - glm::vec3(local_player->position, 0), 8.0f);
+            if(!sub_stop[id] || sub_stop[id]->stopped){
+                sub_start[id] = Sound::play_3D(*Submarine_Start,2.5f, pos - glm::vec3(local_player->position, 0), 8.0f);
+            }
         }   
         if (toPlay(sc, SoundCues::Stop))
         {
             // std::cout << "stop engine" << id << std::endl;
-            sub_stop[id] = Sound::play_3D(*Submarine_Stop,2.5f, pos - glm::vec3(local_player->position, 0), 8.0f);
+            if(!sub_stop[id] || sub_stop[id]->stopped){
+                sub_stop[id] = Sound::play_3D(*Submarine_Stop,2.5f, pos - glm::vec3(local_player->position, 0), 8.0f);
+            }
+            
             sub_moving[id]->set_volume(0.0f,1.0f);
         }
         if (toPlay(sc, SoundCues::Hit))

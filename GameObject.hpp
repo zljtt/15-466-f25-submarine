@@ -103,9 +103,9 @@ struct Player : NetworkObject
     virtual ~Player() {};
 
     // movement
-    static constexpr float MAX_SPEED = 10.0f;
-    static constexpr float ACCEL_RATE = 20.0f;
-    static constexpr float DECEL_RATE = 5.0f;
+    static constexpr float MAX_SPEED = 20.0f;
+    static constexpr float ACCEL_RATE = 30.0f;
+    static constexpr float DECEL_RATE = 10.0f;
     static constexpr float DRAG_S = 0.5f;
     // combat
     static constexpr float TORPEDO_COOLDOWN = 1.0f;
@@ -175,7 +175,7 @@ struct Torpedo : NetworkObject
     virtual ~Torpedo() {};
     // time till torpedo explode on its own
     static constexpr float TORPEDO_LIFETIME = 3.0f;
-    static constexpr float TORPEDO_SPEED = 15.0f;
+    static constexpr float TORPEDO_SPEED = 25.0f;
     static constexpr float TORPEDO_DAMAGE = 30.0f;
 
     // Torpedo states

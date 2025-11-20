@@ -89,10 +89,10 @@ struct Game
     // constants:
     // the update rate on the server:
 
-    inline static glm::vec2 SpawnPos[4] = {glm::vec2(-60, 180),
-                                           glm::vec2(60, 180),
-                                           glm::vec2(-20, 180),
-                                           glm::vec2(20, 180)};
+    inline static glm::vec2 SpawnPos[4] = {glm::vec2(30, 490),
+                                           glm::vec2(112, 490),
+                                           glm::vec2(212, 490),
+                                           glm::vec2(262, 490)};
 
     inline static constexpr float Tick = 1.0f / 30.0f;
 
@@ -101,8 +101,8 @@ struct Game
     inline static const glm::vec2 FlagSpawnMax = {14, 60};
 
     // player constants:
-    inline static constexpr float PlayerRadius = 0.06f;
-    inline static constexpr float PlayerSpeed = 2.0f;
+    inline static constexpr float PlayerRadius = 0.03f;
+    inline static constexpr float PlayerSpeed = 4.0f;
     inline static constexpr float PlayerAccelHalflife = 0.25f;
 
     // used by server:

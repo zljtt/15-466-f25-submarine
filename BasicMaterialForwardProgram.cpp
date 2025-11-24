@@ -81,6 +81,7 @@ BasicMaterialForwardProgram::BasicMaterialForwardProgram() {
 		"uniform float WATER_DENSITY;\n"
 		"uniform vec3 CAMERA_POSITION;\n"
 		"uniform vec3 EYE;\n"
+		"uniform int IS_LIGHT_CONE;"
 		"in vec3 position;\n"
 		"in vec3 normal;\n"
 		"in vec4 color;\n"
@@ -147,6 +148,13 @@ BasicMaterialForwardProgram::BasicMaterialForwardProgram() {
 		"	vec3 finalRGB = attenuated + inScatter;\n"
 		"	fragColor = vec4(finalRGB, albedo.a);\n"
 
+		"    if (IS_LIGHT_CONE == 1) {\n"
+        "        //debug\n"
+        "        fragColor.xyz *= 10;\n"
+		"        fragColor.w = 0.15;\n"
+        "        return;\n"
+        "    }\n"
+
 		// "	fragColor = vec4(total, albedo.a);\n"
 		"}\n"
 	);
@@ -182,7 +190,12 @@ BasicMaterialForwardProgram::BasicMaterialForwardProgram() {
 	WATER_COLOR_vec3 = glGetUniformLocation(program, "WATER_COLOR");
 	WATER_DENSITY_float = glGetUniformLocation(program, "WATER_DENSITY");
 	CAMERA_POSITION_vec3 = glGetUniformLocation(program, "CAMERA_POSITION");
+	IS_LIGHT_CONE_int = glGetUniformLocation(program, "IS_LIGHT_CONE");
 
+	basic_material_forward_program_pipeline.set_uniforms = [](){
+		
+		glUniform1i(basic_material_forward_program->IS_LIGHT_CONE_int, 0);
+	};
 	//set TEX to always refer to texture binding zero:
 	glUseProgram(program); //bind program -- glUniform* calls refer to this program now
 

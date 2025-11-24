@@ -30,7 +30,10 @@ extern Load<Prefab> prefab_propeller;
 extern Load<Prefab> prefab_ammo;
 extern Load<Prefab> prefab_submit_point;
 
-// extern Load<Prefab> prefab_spotlight_mesh;
+extern Load<Prefab> prefab_ammo;
+extern Load<Prefab> prefab_submit_point;
+
+extern Load<Prefab> prefab_spotlight_mesh;
 
 static inline Scene::Drawable *create_drawable_at(Scene &scene, ObjectType type, glm::vec3 pos, glm::vec3 scale)
 {

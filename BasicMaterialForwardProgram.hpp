@@ -46,6 +46,8 @@ struct BasicMaterialForwardProgram {
 	GLuint WATER_COLOR_vec3 = -1U;
 	GLuint WATER_DENSITY_float = -1U;
 	GLuint CAMERA_POSITION_vec3 = -1U;
+
+	GLuint IS_LIGHT_CONE_int = -1U;
 };
 
 extern Load< BasicMaterialForwardProgram > basic_material_forward_program;

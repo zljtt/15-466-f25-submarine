@@ -90,7 +90,7 @@ struct Scene
                 GLenum target = GL_TEXTURE_2D;
             } textures[TextureCount];
 
-            // bool is_transparent = false;
+            bool is_transparent = false;
         } pipeline;
     };
 

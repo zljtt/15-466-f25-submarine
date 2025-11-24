@@ -55,15 +55,15 @@ int main(int argc, char **argv)
         //------------ main loop ------------
 
         // keep track of which connection is controlling which player:
-        std::unordered_map<Connection *, Player *> connection_to_player;
         // keep track of game state:
         Game game;
 
         std::vector<GameObject> obstacles;
         auto on_drawable = [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name)
         {
-            if (mesh_name == "BackgroundPlane") return;
-            
+            if (mesh_name == "BackgroundPlane")
+                return;
+
             // create collision box
             game.static_obstacles.emplace_back(transform->position, transform->scale);
             obstacles.emplace_back(transform->position, transform->scale);
@@ -88,11 +88,11 @@ int main(int argc, char **argv)
                 // helper used on client close (due to quit) and server close (due to error):
                 auto remove_connection = [&](Connection *c)
                 {
-                    auto f = connection_to_player.find(c);
-                    assert(f != connection_to_player.end());
+                    auto f = game.connection_to_player.find(c);
+                    assert(f != game.connection_to_player.end());
                     f->second->deleted = true;
                     // game.remove_object(f->second->id);
-                    connection_to_player.erase(f);
+                    game.connection_to_player.erase(f);
                 };
 
                 server.poll([&](Connection *c, Connection::Event evt)
@@ -103,7 +103,7 @@ int main(int argc, char **argv)
 					//create some player info for them:
                     auto player = game.spawn_object<Player>();
                     game.init_player_spawn_info(player);
-					connection_to_player.emplace(c, player);
+					game.connection_to_player.emplace(c, player);
                     
 
 				} else if (evt == Connection::OnClose) {
@@ -116,8 +116,8 @@ int main(int argc, char **argv)
 					//std::cout << "current buffer:\n" << hex_dump(c->recv_buffer); std::cout.flush(); //DEBUG
 
 					//look up in players list:
-					auto f = connection_to_player.find(c);
-					assert(f != connection_to_player.end());
+					auto f = game.connection_to_player.find(c);
+					assert(f != game.connection_to_player.end());
 					Player &player = *f->second;
 
 					//handle messages from client:
@@ -126,7 +126,6 @@ int main(int argc, char **argv)
 						do {
 							handled_message = false;
 							if (player.controls.recv_controls_message(c)) handled_message = true;
-							//TODO: extend for more message types as needed
 						} while (handled_message);
 					} catch (std::exception const &e) {
 						std::cout << "Disconnecting client:" << e.what() << std::endl;
@@ -140,7 +139,7 @@ int main(int argc, char **argv)
             game.update(Game::Tick);
 
             // send updated game state to all clients
-            for (auto &[c, player] : connection_to_player)
+            for (auto &[c, player] : game.connection_to_player)
             {
                 game.send_state_message(c, player);
             }
@@ -150,9 +149,10 @@ int main(int argc, char **argv)
                                [](auto &obj)
                                { return obj->deleted; }),
                 game.game_objects.end());
-            
-            //reset sound_cue bits so no sound events occur it there are no sound events
-            for(auto &g : game.game_objects){
+
+            // reset sound_cue bits so no sound events occur it there are no sound events
+            for (auto &g : game.game_objects)
+            {
                 g->sound_cues = 0;
             }
         }

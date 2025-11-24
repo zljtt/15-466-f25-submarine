@@ -4,12 +4,19 @@
 
 struct Level
 {
+    enum Status : uint8_t
+    {
+        Prepare = 0,
+        Play = 1,
+        End = 2,
+    };
     struct RevealedObject
     {
         uint32_t obj_id;
         float age;
         float duration;
     };
+    Status status = Prepare;
     std::vector<RevealedObject> revealed_objects;
 
     Level() {
@@ -31,6 +38,7 @@ struct Level
 
     void send(Connection *connection) const
     {
+        connection->send(status);
         connection->send(uint8_t(revealed_objects.size()));
         for (auto ro : revealed_objects)
         {
@@ -45,6 +53,7 @@ struct Level
             std::memcpy(val, &recv_buffer[4 + *at], sizeof(*val));
             *at += sizeof(*val);
         };
+        read(&status);
 
         revealed_objects.clear();
         uint8_t ro_count;

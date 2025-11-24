@@ -11,8 +11,6 @@
 #include <glm/gtx/norm.hpp>
 #include "BBox.hpp"
 
-//-----------------------------------------
-
 Game::Game()
 {
 }
@@ -51,30 +49,80 @@ void Game::remove_object(uint32_t id)
 
 void Game::update(float elapsed)
 {
-    // spawn flag
-    auto flags = get_objects<Flag>();
-    auto players = get_objects<Player>();
-    bool has_flag = false;
-    for (auto p : players)
-        if (p->data.has_flag)
-            has_flag = true;
-    if (flags.size() == 0 && !has_flag)
+    switch (level.status)
     {
-        flag_spawn_timer -= elapsed;
-        if (flag_spawn_timer < 0)
+    case Level::Prepare:
+    {
+        auto players = get_objects<Player>();
+        if (players.size() >= MaxPlayer)
         {
-            auto flag = spawn_object<Flag>();
-            // PLAY SOUND : new flag spawned
-            flag->add_sound_cue(static_cast<uint8_t>(SoundCues::JustSpawned));
-            // UI NOTIFY : new flag spawned
-
-            std::uniform_real_distribution<float> randx(std::min(FlagSpawnMin.x, FlagSpawnMax.x), std::max(FlagSpawnMin.x, FlagSpawnMax.x));
-            std::uniform_real_distribution<float> randy(std::min(FlagSpawnMin.y, FlagSpawnMax.y), std::max(FlagSpawnMin.y, FlagSpawnMax.y));
-            flag->position = glm::vec2(randx(mt), randy(mt));
-
-            std::cout << "flag spawn at " << flag->position.x << " " << flag->position.y << "\n";
-            flag_spawn_timer = FlagSpawnCooldown;
+            int ready = 0;
+            for (auto p : players)
+            {
+                if (p->data.status == Player::Ready)
+                {
+                    ready++;
+                }
+            }
+            if (ready >= players.size())
+            {
+                level.status = Level::Play;
+                for (auto p : players)
+                {
+                    p->data.status = Player::Play;
+                }
+            }
         }
+        break;
+    }
+    case Level::Play:
+    {
+        // spawn flag
+        auto flags = get_objects<Flag>();
+        auto players = get_objects<Player>();
+        bool has_flag = false;
+        for (auto p : players)
+            if (p->data.has_flag)
+                has_flag = true;
+        if (flags.size() == 0 && !has_flag)
+        {
+            flag_spawn_timer -= elapsed;
+            if (flag_spawn_timer < 0)
+            {
+                // remove all submit point
+                auto sps = get_objects<SubmitPoint>();
+                if (sps.size() > 0)
+                {
+                    remove_object(sps[0]->id);
+                }
+                // spawn flag
+                auto flag = spawn_object<Flag>();
+                auto submit = spawn_object<SubmitPoint>();
+                // PLAY SOUND : new flag spawned
+                flag->add_sound_cue(static_cast<uint8_t>(SoundCues::JustSpawned));
+                // UI NOTIFY : new flag spawned
+                auto players = get_objects<Player>();
+                for (auto p : players)
+                {
+                    send_notification_message(p, "A BlackBox is spawned.");
+                }
+                std::uniform_int_distribution<int> randflag(0, 4);
+                std::uniform_int_distribution<int> randsubmit(0, 2);
+                // std::uniform_real_distribution<float> randx(std::min(FlagSpawnMin.x, FlagSpawnMax.x), std::max(FlagSpawnMin.x, FlagSpawnMax.x));
+                // std::uniform_real_distribution<float> randy(std::min(FlagSpawnMin.y, FlagSpawnMax.y), std::max(FlagSpawnMin.y, FlagSpawnMax.y));
+                flag->position = FlagSpawnPositions[randflag(mt)];
+                submit->position = SubmitPointSpawnPositions[randsubmit(mt)];
+
+                std::cout << "flag spawn at " << flag->position.x << " " << flag->position.y << "\n";
+                flag_spawn_timer = FlagSpawnCooldown;
+            }
+        }
+        break;
+    }
+    case Level::End:
+        break;
+    default:
+        break;
     }
 
     for (NetworkObject *obj : game_objects)
@@ -82,6 +130,32 @@ void Game::update(float elapsed)
         obj->update(elapsed, this);
     }
     level.update(elapsed);
+}
+
+void Game::send_notification_message(Player *connection_player, std::string notification) const
+{
+    Connection *connection = nullptr;
+    for (auto &[conn, player] : connection_to_player)
+        if (player == connection_player)
+            connection = conn;
+    assert(connection);
+    connection->send(Message::S2C_Notification);
+    connection->send(uint8_t(0));
+    connection->send(uint8_t(0));
+    connection->send(uint8_t(0));
+    size_t mark = connection->send_buffer.size(); // keep track of this position in the buffer
+    uint32_t len = (uint32_t)notification.size();
+
+    connection->send(len);
+    connection->send_buffer.insert(
+        connection->send_buffer.end(),
+        notification.begin(),
+        notification.end());
+    // compute the message size and patch into the message header:
+    uint32_t size = uint32_t(connection->send_buffer.size() - mark);
+    connection->send_buffer[mark - 3] = uint8_t(size);
+    connection->send_buffer[mark - 2] = uint8_t(size >> 8);
+    connection->send_buffer[mark - 1] = uint8_t(size >> 16);
 }
 
 void Game::send_state_message(Connection *connection_, Player *connection_player) const

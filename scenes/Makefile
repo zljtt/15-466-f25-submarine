@@ -13,6 +13,7 @@ endif
 EXPORT_PREFAB_MESHES=export-meshes.py
 EXPORT_SCENE_MESHES=export-meshes.py
 EXPORT_SCENE=export-scene.py
+EXPORT_NOCOLLISION_SCENE=export-scene.py
 
 DIST=../dist
 
@@ -20,6 +21,7 @@ all : \
 	$(DIST)/prototype_prefab.pnct \
 	$(DIST)/prototype_scene.pnct \
 	$(DIST)/prototype.scene \
+	$(DIST)/prototype_nocollision.scene \
 
 $(DIST)/prototype_prefab.pnct : prototype_map2.blend $(EXPORT_PREFAB_MESHES)
 	$(BLENDER) --background --python $(EXPORT_PREFAB_MESHES) -- '$<':Prefab '$@'
@@ -30,8 +32,12 @@ $(DIST)/prototype_scene.pnct : prototype_map2.blend $(EXPORT_SCENE_MESHES)
 $(DIST)/prototype.scene : prototype_map2.blend $(EXPORT_SCENE)
 	$(BLENDER) --background --python $(EXPORT_SCENE) -- '$<':Scene '$@'
 
+$(DIST)/prototype_nocollision.scene : prototype_map2.blend $(EXPORT_SCENE)
+	$(BLENDER) --background --python $(EXPORT_NOCOLLISION_SCENE) -- '$<':Nocollision '$@'
+
 clean :
 	rm -f \
 	$(DIST)/prototype_prefab.pnct \
 	$(DIST)/prototype_scene.pnct \
-	$(DIST)/prototype.scene
+	$(DIST)/prototype.scene \
+	$(DIST)/prototype_nocollision.scene \

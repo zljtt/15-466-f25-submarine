@@ -20,7 +20,6 @@
 #include <deque>
 #include <array>
 
-
 struct PlayMode : Mode
 {
     // UI keys
@@ -29,6 +28,9 @@ struct PlayMode : Mode
     // overlay index
     static const int GUI = 0;
     static const int RADAR = 1;
+    static const int NOTIFICATION = 2;
+    static const int LARGE_TEXT = 3;
+
     static const int Flag = 1;
 
     PlayMode(Client &client);
@@ -45,6 +47,7 @@ struct PlayMode : Mode
     void update_animation(float elapsed);
     void update_spotlight(float elapsed);
     void update_ui(float elapsed);
+    void update_notification(float elapsed);
     virtual void draw(glm::uvec2 const &drawable_size) override;
     glm::vec2 world_to_screen(glm::vec2 worldPos, const UIRenderer *renderer) const;
     glm::vec2 get_screen_size() const;
@@ -56,7 +59,7 @@ struct PlayMode : Mode
 
     // sounds
 
-    //sounds that need multiple instances need to be stored in unordered maps mapping player id to sound instance
+    // sounds that need multiple instances need to be stored in unordered maps mapping player id to sound instance
     std::unordered_map<uint32_t, std::shared_ptr<Sound::PlayingSample>> sub_moving;
     std::unordered_map<uint32_t, std::shared_ptr<Sound::PlayingSample>> sub_start;
     std::unordered_map<uint32_t, std::shared_ptr<Sound::PlayingSample>> sub_stop;
@@ -85,11 +88,18 @@ struct PlayMode : Mode
 
     // data for radar
     Radar radar;
-    float radar_timer;
 
     // data for level
     Level level_data;
 
+    struct Notification
+    {
+        std::string text;
+        float time;
+    };
+    std::vector<Notification> notifications;
+
+    void add_notification(std::string message, float time);
     // input tracking for local player:
     Player::Controls controls;
 
@@ -106,10 +116,10 @@ struct PlayMode : Mode
     void draw_overlay(glm::uvec2 const &drawable_size);
     glm::vec2 local_player_pos();
 
-    float water_surface_y = 200.0f;
-    float max_depth = 100.0f;
+    float water_surface_y = 450.0f; // 200
+    float max_depth = 380.0f;       // 100
     glm::vec3 base_water_color = glm::vec3(0.0f, 0.06f, 0.12f);
-    //parameter: remaining energy percentage, depth
+    // parameter: remaining energy percentage, depth
     float k = -std::log(0.1f) / 50.0f;
 
     float cutoff = glm::radians(20.0f);
@@ -119,6 +129,7 @@ struct PlayMode : Mode
     // set game state from data in connection buffer
     //  (return true if data was read)
     bool recv_state_message(Connection *connection);
+    bool recv_notification_message(Connection *connection);
 
     std::vector<NetworkObject> get_objects(ObjectType type) const;
     NetworkObject get_object(uint32_t id) const;

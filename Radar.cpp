@@ -102,6 +102,18 @@ void Radar::render(DrawLines &hud)
 
 void Radar::update(float elapse)
 {
+
+    radar_timer -= elapse;
+    special_radar_timer -= elapse;
+
+    // normal radar
+    if (radar_timer < 0.0f && client_game->local_player_data().status == Player::Play)
+    {
+        radar_timer = client_game->local_player_data().normal_radar_interval;
+        scan(client_game->local_player, client_game->local_player_data().normal_radar_range, Radar::RADAR_RAY_COUNT);
+    }
+
+    // update radar data
     for (auto &result : results)
     {
         result.age += elapse;
@@ -133,8 +145,6 @@ void Radar::update(float elapse)
                        [](const ScanPath &r)
                        { return r.distance > r.max_distance; }),
         paths.end());
-
-    special_radar_timer -= elapse;
 }
 
 void Radar::scan(GameObject const *origin, float range, int count)
@@ -217,17 +227,17 @@ void Radar::scan_special(GameObject const *origin, float range)
         path.points.push_back(radar_point);
     }
 
-    auto closest_ray_index = [&](glm::vec2 dir) -> int
-    {
-        if (dir == glm::vec2(0.0f))
-            return 0;
-        float a = std::atan2(dir.y, dir.x);
-        if (a < 0.0f)
-            a += glm::two_pi<float>();
-        float step = glm::two_pi<float>() / float(RADAR_RAY_COUNT);
-        int idx = int(std::floor((a + 0.5f * step) / step)) % RADAR_RAY_COUNT;
-        return idx;
-    };
+    // auto closest_ray_index = [&](glm::vec2 dir) -> int
+    // {
+    //     if (dir == glm::vec2(0.0f))
+    //         return 0;
+    //     float a = std::atan2(dir.y, dir.x);
+    //     if (a < 0.0f)
+    //         a += glm::two_pi<float>();
+    //     float step = glm::two_pi<float>() / float(RADAR_RAY_COUNT);
+    //     int idx = int(std::floor((a + 0.5f * step) / step)) % RADAR_RAY_COUNT;
+    //     return idx;
+    // };
 
     for (auto &obj : client_game->network_objects)
     {
@@ -235,21 +245,32 @@ void Radar::scan_special(GameObject const *origin, float range)
         if (obj.type == ObjectType::Player && obj.id != client_game->local_player->id)
         {
             texture = tex_radar_submarine->tex;
+            client_game->add_notification("Another Submarine Scanned!", 4.0f);
         }
         else if (obj.type == ObjectType::Flag)
         {
             texture = tex_radar_flag->tex;
+            client_game->add_notification("Black Box Discovered!", 4.0f);
+        }
+        else if (obj.type == ObjectType::SubmitPoint)
+        {
+            texture = tex_radar_submit_point->tex;
+            client_game->add_notification("Submission Point Discovered!", 4.0f);
         }
         else
         {
             continue;
         }
+        int offset = rand_size(gen);
 
-        auto direction = glm::normalize(obj.position - origin->position);
-        RadarPoint &rp = path.points[closest_ray_index(direction)];
-        rp.tex = texture;
-        float distance = glm::length(obj.position - origin->position);
-        rp.bound = std::clamp(distance, 0.0f, 50.0f);
+        results.emplace_back(obj.position, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                             RADAR_POINT_SIZE + offset, 0.0f, true, 6.0f, texture);
+
+        // auto direction = glm::normalize(obj.position - origin->position);
+        // RadarPoint &rp = path.points[closest_ray_index(direction)];
+        // rp.tex = texture;
+        // float distance = glm::length(obj.position - origin->position);
+        // rp.bound = std::clamp(distance, 0.0f, 50.0f);
     }
 
     paths.push_back(path);

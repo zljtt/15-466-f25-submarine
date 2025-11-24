@@ -37,7 +37,8 @@ PlayMode::PlayMode(Client &client_) : scene(*prototype_scene), radar(this), clie
     std::vector<GameObject> obstacles;
     auto on_drawable = [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name)
     {
-        if (mesh_name == "BackgroundPlane") return;
+        if (mesh_name == "BackgroundPlane")
+            return;
 
         // create collision box
         // local_obstacles.emplace_back(transform->position, transform->scale);
@@ -58,10 +59,11 @@ PlayMode::PlayMode(Client &client_) : scene(*prototype_scene), radar(this), clie
     // int w, h;
     text_overlays.emplace_back(renderer_gui.value); // GUI
     // text_overlays[GUI].update_text("test", "test", glm::vec2(500, 400), UIOverlay::BottomLeft);
-    text_overlays.emplace_back(renderer_radar.value); // RADAR
+    text_overlays.emplace_back(renderer_radar.value);        // RADAR
+    text_overlays.emplace_back(renderer_notification.value); // NOTIFICATION
+    text_overlays.emplace_back(renderer_large.value);        // NOTIFICATION
+
     // text_overlays[RADAR].update_image("test", *tex_radar_result, glm::vec2(100, 100), glm::vec2(100, 100));
-
-
 }
 
 PlayMode::~PlayMode()
@@ -256,33 +258,35 @@ void PlayMode::execute_network_soundcues(ObjectType type, uint8_t sc, glm::vec3 
 {
     if (type == ObjectType::Player)
     {
-        
+
         if (toPlay(sc, SoundCues::Start))
         {
             // std::cout << "start engine" << id << std::endl;
             if (sub_moving.find(id) == sub_moving.end())
                 sub_moving[id] = Sound::loop_3D(*Submarine_Moving, 0.0f, pos - glm::vec3(local_player->position, 0), 8.0f);
-            sub_moving[id]->set_volume(0.1f,1.0f);
-            if(!sub_stop[id] || sub_stop[id]->stopped){
-                sub_start[id] = Sound::play_3D(*Submarine_Start,2.5f, pos - glm::vec3(local_player->position, 0), 8.0f);
+            sub_moving[id]->set_volume(0.1f, 1.0f);
+            if (!sub_stop[id] || sub_stop[id]->stopped)
+            {
+                sub_start[id] = Sound::play_3D(*Submarine_Start, 2.5f, pos - glm::vec3(local_player->position, 0), 8.0f);
             }
-        }   
+        }
         if (toPlay(sc, SoundCues::Stop))
         {
             // std::cout << "stop engine" << id << std::endl;
-            if(!sub_stop[id] || sub_stop[id]->stopped){
-                sub_stop[id] = Sound::play_3D(*Submarine_Stop,2.5f, pos - glm::vec3(local_player->position, 0), 8.0f);
+            if (!sub_stop[id] || sub_stop[id]->stopped)
+            {
+                sub_stop[id] = Sound::play_3D(*Submarine_Stop, 2.5f, pos - glm::vec3(local_player->position, 0), 8.0f);
             }
-            
-            sub_moving[id]->set_volume(0.0f,1.0f);
+
+            sub_moving[id]->set_volume(0.0f, 1.0f);
         }
         if (toPlay(sc, SoundCues::Hit))
-        {   
-            if(sub_hit && !sub_hit->stopped){
+        {
+            if (sub_hit && !sub_hit->stopped)
+            {
                 return;
             }
             sub_hit = Sound::play_3D(*Submarine_Hit, 5.0f, pos - glm::vec3(local_player->position, 0), 8.0f);
-
         }
         if (toPlay(sc, SoundCues::GetPoint))
         {
@@ -292,26 +296,21 @@ void PlayMode::execute_network_soundcues(ObjectType type, uint8_t sc, glm::vec3 
 
 void PlayMode::update(float elapsed)
 {
-    update_control(elapsed);
     update_connection(elapsed);
+    update_notification(elapsed);
     update_radar(elapsed);
+    update_spotlight(elapsed);
     update_camera(elapsed);
     update_sound(elapsed);
     update_animation(elapsed);
-    update_spotlight(elapsed);
     update_ui(elapsed);
+    update_control(elapsed);
 }
 
 void PlayMode::update_control(float elapsed)
 {
     // queue data for sending to server:
     controls.send_controls_message(&client.connection);
-
-    if (controls.radar.downs)
-    {
-        radar.scan_special(local_player, 999);
-    }
-
     // reset button press counters:
     controls.left.downs = 0;
     controls.right.downs = 0;
@@ -345,6 +344,7 @@ void PlayMode::update_connection(float elapsed)
 				do {
 					handled_message = false;
 					if (recv_state_message(c)) handled_message = true;
+                    if (recv_notification_message(c)) handled_message = true;
 				} while (handled_message);
 			} catch (std::exception const &e) {
 				std::cerr << "[" << c->socket << "] malformed message from server: " << e.what() << std::endl;
@@ -356,11 +356,9 @@ void PlayMode::update_connection(float elapsed)
 
 void PlayMode::update_radar(float elapsed)
 {
-    radar_timer -= elapsed;
-    if (radar_timer < 0)
+    if (controls.radar.downs && local_player_data().status == Player::Play && radar.special_radar_timer <= 0)
     {
-        radar_timer = local_player_data().normal_radar_interval;
-        radar.scan(local_player, local_player_data().normal_radar_range, Radar::RADAR_RAY_COUNT);
+        radar.scan_special(local_player, 999);
     }
     radar.update(elapsed);
 }
@@ -369,45 +367,46 @@ void PlayMode::update_camera(float elapsed)
 {
     glm::vec2 local_pos = network_drawables[local_player->id]->transform->position;
 
-    
     camera->transform->position = glm::vec3(local_pos.x, local_pos.y, camera->transform->position.z);
 }
 
+void PlayMode::update_animation(float elapsed)
+{
 
-void PlayMode::update_animation(float elapsed){
-
-    //trivial turning animation 
+    // trivial turning animation
     glm::vec3 eulerAnglesDegrees = glm::vec3(180.0f, 0.0f, 0.0f);
     glm::vec3 eulerAnglesRadians = glm::radians(eulerAnglesDegrees);
-    network_drawables[local_player->id]->transform->rotation = local_player_data().player_facing ? glm::quat(eulerAnglesRadians) : glm::quat(0,0,0,1);
+    network_drawables[local_player->id]->transform->rotation = local_player_data().player_facing ? glm::quat(eulerAnglesRadians) : glm::quat(0, 0, 0, 1);
 
-    for(auto p : player_data){
-        //animating propeller, the faster the player is moving, the more it spins
+    for (auto p : player_data)
+    {
+        // animating propeller, the faster the player is moving, the more it spins
         auto player = get_object(p.first);
         float player_speed = glm::length(player.velocity);
-        if (player_speed > 0.01f){
+        if (player_speed > 0.01f)
+        {
             size_t playerDrawable_count = network_drawables.count(p.first);
-            if(playerDrawable_count){
+            if (playerDrawable_count)
+            {
                 auto playerDrawable = network_drawables[p.first];
-                glm::quat rotation_x = glm::angleAxis(glm::radians(std::min(100.0f * player_speed * player_speed * elapsed , elapsed * 1000.0f)), glm::vec3(1.0f, 0.0f, 0.0f));             
-                playerDrawable->transform->child->rotation =  playerDrawable->transform->child->rotation * rotation_x;             
+                glm::quat rotation_x = glm::angleAxis(glm::radians(std::min(100.0f * player_speed * player_speed * elapsed, elapsed * 1000.0f)), glm::vec3(1.0f, 0.0f, 0.0f));
+                playerDrawable->transform->child->rotation = playerDrawable->transform->child->rotation * rotation_x;
             }
         }
     }
-
 }
 
 void PlayMode::update_sound(float elapsed)
 {
     // go through all the network objects to see which has a sound to play
-    Sound::listener.set_position_right(glm::vec3(local_player->position,0), glm::vec3(1,0,0), 1.0f / 60.0f);
-    
+    Sound::listener.set_position_right(glm::vec3(local_player->position, 0), glm::vec3(1, 0, 0), 1.0f / 60.0f);
+
     for (auto &netObj : network_objects)
     {
         if (netObj.sound_cues != 0)
         {
-            Scene::Transform * loc = network_drawables[local_player->id]->transform;
-            std::cout<<network_drawables[local_player->id]->pipeline.count<<" "<<loc->position.x<<" "<<loc->position.y<<" "<<loc->position.z<<loc->scale.x<<std::endl;
+            Scene::Transform *loc = network_drawables[local_player->id]->transform;
+            std::cout << network_drawables[local_player->id]->pipeline.count << " " << loc->position.x << " " << loc->position.y << " " << loc->position.z << loc->scale.x << std::endl;
             execute_network_soundcues(netObj.type, netObj.sound_cues, glm::vec3(netObj.position, 0), netObj.id);
             // clear the sound_cues
             netObj.sound_cues = 0;
@@ -443,7 +442,7 @@ void PlayMode::update_spotlight(float elapsed)
     //     spot_light_dir_x = 1.0f;
     // else if (velocity.x < -1e-3f)
     //     spot_light_dir_x = -1.0f;
-    
+
     // for (auto p: player_data) {
     //     light_mesh_data[p.first] = network_drawables[p.first]->transform;
     // }
@@ -456,7 +455,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
 
     glm::vec2 player_pos = local_player_pos();
     float depth = glm::max(0.0f, water_surface_y - player_pos.y);
-    
+
     // float t = glm::clamp(depth / max_depth, 0.0f, 1.0f);
     // float atten = (1.0f - t) * (1.0f - t);
     // float atten = pow((1.0f - t), 3);
@@ -469,7 +468,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
     // std::cout << "depth: " << depth << std::endl;
     // std::cout << "atten: " << atten << std::endl;
 
-    // std::cout << "camera transform: " 
+    // std::cout << "camera transform: "
     // << camera->transform->position.x << " "
     // << camera->transform->position.y << " "
     // << camera->transform->position.z << " "
@@ -483,14 +482,14 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
     glDepthMask(GL_TRUE);
     glDepthFunc(GL_LESS);
 
-    //multi-pass lighting:
-    // glUseProgram(lit_color_texture_program->program);
-    // glUniform1f(lit_color_texture_program->TILES_PER_UNIT_float, 0.1f);
-    // glUniform3fv(lit_color_texture_program->WATER_COLOR_vec3, 1, glm::value_ptr(water_color));
-    // glUniform3fv(lit_color_texture_program->CAMERA_POSITION_vec3, 1, glm::value_ptr(camera->transform->position + glm::vec3(0.0f, 0.0f, 0.0f)));
-    // glUseProgram(0);
-    
-    //forward rendering:
+    // multi-pass lighting:
+    //  glUseProgram(lit_color_texture_program->program);
+    //  glUniform1f(lit_color_texture_program->TILES_PER_UNIT_float, 0.1f);
+    //  glUniform3fv(lit_color_texture_program->WATER_COLOR_vec3, 1, glm::value_ptr(water_color));
+    //  glUniform3fv(lit_color_texture_program->CAMERA_POSITION_vec3, 1, glm::value_ptr(camera->transform->position + glm::vec3(0.0f, 0.0f, 0.0f)));
+    //  glUseProgram(0);
+
+    // forward rendering:
     glUseProgram(basic_material_forward_program->program);
     glUniform1f(basic_material_forward_program->TILES_PER_UNIT_float, 0.1f);
     glUniform3fv(basic_material_forward_program->WATER_COLOR_vec3, 1, glm::value_ptr(water_color));
@@ -573,9 +572,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
         light_energies.push_back(spot_light_energy);
         light_cutoffs.push_back(cos_cutoff);
 
-
-
-
         // glUseProgram(lit_color_texture_program->program);
         // glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 2);
         // glUniform3fv(lit_color_texture_program->LIGHT_LOCATION_vec3, 1, glm::value_ptr(spot_light_pos));
@@ -590,11 +586,12 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
 
     GLsizei light_count = static_cast<GLsizei>(light_types.size());
 
-    if (light_count > BasicMaterialForwardProgram::MaxLights) {
+    if (light_count > BasicMaterialForwardProgram::MaxLights)
+    {
         light_count = BasicMaterialForwardProgram::MaxLights;
     }
 
-    glUniform1ui(basic_material_forward_program->LIGHTS_uint, light_count); 
+    glUniform1ui(basic_material_forward_program->LIGHTS_uint, light_count);
     glUniform1iv(basic_material_forward_program->LIGHT_TYPE_int_array, light_count, light_types.data());
     glUniform3fv(basic_material_forward_program->LIGHT_LOCATION_vec3_array, light_count, glm::value_ptr(light_poss[0]));
     glUniform3fv(basic_material_forward_program->LIGHT_DIRECTION_vec3_array, light_count, glm::value_ptr(light_dirs[0]));
@@ -602,9 +599,8 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
     glUniform1fv(basic_material_forward_program->LIGHT_CUTOFF_float_array, light_count, light_cutoffs.data());
     glUseProgram(0);
 
-
     scene.draw(*camera);
-    
+
     draw_overlay(drawable_size);
 
     GL_ERRORS();
@@ -614,6 +610,50 @@ glm::vec2 PlayMode::local_player_pos()
 {
     glm::vec3 p = network_drawables[local_player->id]->transform->position;
     return {p.x, p.y};
+}
+
+bool PlayMode::recv_notification_message(Connection *connection_)
+{
+    assert(connection_);
+    auto &connection = *connection_;
+    auto &recv_buffer = connection.recv_buffer;
+    if (recv_buffer.size() < 4)
+        return false;
+    if (recv_buffer[0] != uint8_t(Message::S2C_Notification))
+        return false;
+    uint32_t size = (uint32_t(recv_buffer[3]) << 16) | (uint32_t(recv_buffer[2]) << 8) | uint32_t(recv_buffer[1]);
+    uint32_t at = 0;
+    if (recv_buffer.size() < 4 + size)
+        return false;
+
+    auto read_string = [&]()
+    {
+        uint32_t len;
+        std::memcpy(&len, &recv_buffer[4 + at], sizeof(uint32_t));
+        at += sizeof(uint32_t);
+
+        if (4 + at + len > recv_buffer.size())
+        {
+            throw std::runtime_error("Ran out of bytes reading notification.");
+        }
+
+        std::string s((char *)&recv_buffer[4 + at], len);
+        at += len;
+        return s;
+    };
+
+    std::string notification = read_string();
+    notifications.emplace_back(notification, 5.0f);
+
+    if (at != size)
+    {
+        throw std::runtime_error("Trailing data in notification message.");
+    }
+
+    // delete message from buffer:
+    recv_buffer.erase(recv_buffer.begin(), recv_buffer.begin() + 4 + size);
+
+    return true;
 }
 
 bool PlayMode::recv_state_message(Connection *connection_)
@@ -660,7 +700,6 @@ bool PlayMode::recv_state_message(Connection *connection_)
         if (i == 0)
         {
             local_player = &obj;
-            
         }
         // find drawable
         auto drawable = network_drawables.find(obj.id);
@@ -688,7 +727,6 @@ bool PlayMode::recv_state_message(Connection *connection_)
             drawable->second->transform->position = glm::vec3(obj.position, 0);
             drawable->second->transform->scale = glm::vec3(obj.scale, 1);
         }
-        
     }
     // receive player data
     uint8_t player_data_count;

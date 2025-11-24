@@ -22,6 +22,8 @@ extern Load<Sprite> tex_radar_blurred;
 extern Load<Sprite> tex_radar_submarine;
 extern Load<Sprite> tex_radar_flag;
 extern Load<Sprite> tex_radar_radar;
+extern Load<Sprite> tex_radar_submit_point;
+extern Load<Sprite> ui_select_ship;
 
 extern Load<MeshBuffer> prototype_scene_meshes;
 extern Load<Scene> prototype_scene;
@@ -29,6 +31,8 @@ extern Load<Scene> prototype_scene;
 struct UIRenderer;
 extern Load<UIRenderer> renderer_gui;
 extern Load<UIRenderer> renderer_radar;
+extern Load<UIRenderer> renderer_notification;
+extern Load<UIRenderer> renderer_large;
 
 extern Load<Sound::Sample> Submarine_Moving;
 extern Load<Sound::Sample> Submarine_Start;

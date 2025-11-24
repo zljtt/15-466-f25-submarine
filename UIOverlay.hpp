@@ -127,6 +127,11 @@ struct UIOverlay
             }
         }
     }
-
+    void clear()
+    {
+        images.clear();
+        texts.clear();
+        update_data();
+    }
     glm::vec2 get_anchored_pos(Alignment alignment, glm::vec2 relative);
 };

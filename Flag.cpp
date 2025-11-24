@@ -20,3 +20,25 @@ void Flag::init()
 void Flag::update(float elapsed, Game *game)
 {
 }
+
+void SubmitPoint::init()
+{
+    NetworkObject::init();
+    type = ObjectType::SubmitPoint;
+    scale = glm::vec2(0.0f, 0.0f);
+}
+
+void SubmitPoint::update(float elapsed, Game *game)
+{
+}
+
+void Ammo::init()
+{
+    NetworkObject::init();
+    type = ObjectType::Ammo;
+    scale = glm::vec2(1.0f, 1.0f);
+}
+
+void Ammo::update(float elapsed, Game *game)
+{
+}

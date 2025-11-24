@@ -33,12 +33,99 @@ int Player::can_collide(const NetworkObject *other) const
 
 void Player::update(float elapsed, Game *game)
 {
+    data.i_frame -= elapsed;
+    switch (data.status)
+    {
+    case NotReady:
+    {
+        if (controls.num1.downs)
+        {
+            select_ship(Default);
+            select_ship(Explorer);
+            data.status = Ready;
+        }
+        else if (controls.num2.downs)
+        {
+            select_ship(Default);
+            select_ship(Fighter);
+            data.status = Ready;
+        }
+        else if (controls.num3.downs)
+        {
+            select_ship(Default);
+            select_ship(Quest);
+            data.status = Ready;
+        }
+        break;
+    }
+    case Ready:
+        break;
+    case Play:
+    {
+        if (controls.radar.downs)
+        {
+            if (data.super_radar_exposure)
+            {
+                game->level.revealed_objects.emplace_back(id, 0.0f, static_cast<float>(SUPER_RADAR_EXPOSURE_TIME));
+            }
+        }
+        if (controls.light.downs)
+        {
+            data.light_on = !data.light_on;
+        }
+        update_movement(elapsed, game);
+        update_weapon(elapsed, game);
+        update_win_lose(elapsed, game);
 
-    update_weapon(elapsed, game);
-    update_movement(elapsed, game);
-    update_win_lose(elapsed, game);
-    update_control(elapsed, game);
+        break;
+    }
+    case RespawnSelect:
+    {
+        data.respawn_timer -= elapsed;
+        if (data.respawn_timer <= 0)
+        {
+            data.status = Play;
+            break;
+        }
+        if (controls.num1.downs)
+        {
+            select_ship(Default);
+            select_ship(Explorer);
+            data.status = RespawnWait;
+        }
+        else if (controls.num2.downs)
+        {
+            select_ship(Default);
+            select_ship(Fighter);
+            data.status = RespawnWait;
+        }
+        else if (controls.num3.downs)
+        {
+            select_ship(Default);
+            select_ship(Quest);
+            data.status = RespawnWait;
+        }
+
+        break;
+    }
+    case RespawnWait:
+    {
+        data.respawn_timer -= elapsed;
+        if (data.respawn_timer <= 0)
+        {
+            data.status = Play;
+        }
+        break;
+    }
+    case GameOver:
+    {
+        break;
+    }
+    default:
+        break;
+    }
     // reset 'downs' since controls have been handled:
+    update_control(elapsed, game);
 }
 
 void Player::update_movement(float elapsed, Game *game)
@@ -129,14 +216,14 @@ void Player::update_movement(float elapsed, Game *game)
 void Player::update_weapon(float elapsed, Game *game)
 {
     // spawn a torpedo
-    if (controls.jump.pressed && data.torpedo_timer > TORPEDO_COOLDOWN)
+    if (controls.jump.pressed && data.torpedo_timer > data.torpedo_cooldown)
     {
         // std::cout << "from player: " << id << "wait time is " << data.torpedo_timer << std::endl;
         // std::cout << "Player Pos: " << p.position.x << " " << p.position.y << " \n";
         Torpedo *torp = game->spawn_object<Torpedo>();
         torp->position = position;
 
-        torp->velocity = glm::vec2(data.player_facing ? 1 : -1, 0) * Torpedo::TORPEDO_SPEED;
+        torp->velocity = glm::vec2(data.player_facing ? 1 : -1, 0) * data.torpedo_speed;
         torp->owner = id;
         data.torpedo_timer = 0.0f;
     }
@@ -148,17 +235,6 @@ void Player::update_weapon(float elapsed, Game *game)
 
 void Player::update_control(float elapsed, Game *game)
 {
-    if (controls.radar.downs)
-    {
-        if (data.super_radar_exposure)
-        {
-            game->level.revealed_objects.emplace_back(id, 0.0f, static_cast<float>(SUPER_RADAR_EXPOSURE_TIME));
-        }
-    }
-    if (controls.light.downs)
-    {
-        data.light_on = !data.light_on;
-    }
 
     controls.left.downs = 0;
     controls.right.downs = 0;
@@ -177,29 +253,66 @@ void Player::update_control(float elapsed, Game *game)
 
 void Player::update_win_lose(float elapsed, Game *game)
 {
-
-    if (glm::distance(position, data.spawn_pos) < 5)
+    auto prev = data.submitting;
+    auto sps = game->get_objects<SubmitPoint>();
+    data.submitting = false;
+    if (sps.size() > 0)
     {
-        // win
-        if (data.has_flag)
-        {
-            // PLAY SOUND : get point
-            add_sound_cue(static_cast<uint8_t>(SoundCues::GetPoint));
-            // UI NOTIFY : get point
-            std::cout << "Player " << id << " collect a flag\n";
-            data.flag_count++;
-            data.has_flag = false;
-        }
+        data.submitting = glm::distance(sps[0]->position, position) < 8 && data.has_flag;
+    }
+    if (!data.submitting)
         return;
+    // UI NOTIFY : get point
+    if (!prev)
+    {
+        auto players = game->get_objects<Player>();
+        for (auto p : players)
+        {
+            if (p->id == this->id)
+            {
+                game->send_notification_message(p, "Submitting BlackBox...");
+            }
+            else
+            {
+                game->send_notification_message(p, "A Submarine is submitting BlackBox!");
+            }
+        }
+        data.submit_progression = 0.0f;
+        data.submitting = true;
+    }
+    data.submit_progression += elapsed;
+    if (data.submit_progression >= 10.0f)
+    {
+        // PLAY SOUND : get point
+        add_sound_cue(static_cast<uint8_t>(SoundCues::GetPoint));
+        data.flag_count++;
+        data.has_flag = false;
+        auto players = game->get_objects<Player>();
+        for (auto p : players)
+        {
+            if (p->id == this->id)
+            {
+                game->send_notification_message(p, "Point Obtained!");
+            }
+            else
+            {
+                game->send_notification_message(p, "A Submarine gets 1 point");
+            }
+        }
     }
 }
 
 void Player::take_damage(Game *game, float damage, GameObject *source)
 {
+    if (data.status != Play || data.i_frame >= 0.0f)
+        return;
     // PLAY SOUND : take damage
+    data.i_frame = 0.5f;
     add_sound_cue(static_cast<uint8_t>(SoundCues::Hit));
     std::cout << "Player " << id << " take " << damage << " damage from " << int(source->type) << "\n";
     data.hp -= damage;
+    // game->send_notification_message(this, "Submarine Damaged.");
+
     if (data.hp < 0)
     {
         die(game, source);
@@ -211,6 +324,11 @@ void Player::die(Game *game, GameObject *source)
 {
     std::cout << "Player " << id << " die\n";
     // UI NOTIDY to killer : player killed
+    Player *other = dynamic_cast<Player *>(source);
+    if (other)
+    {
+        game->send_notification_message(other, "Destroyed an submarine.");
+    }
     if (data.has_flag)
     {
         // UI NOTIFY to others : flag droped
@@ -219,10 +337,53 @@ void Player::die(Game *game, GameObject *source)
         flag->position = position;
         data.has_flag = false;
     }
-    data.hp = MAX_HEALTH;
+    game->send_notification_message(this, "Your submarine is destroyed.");
+    data.respawn_timer = 10.0f;
+    data.status = RespawnSelect;
     position = data.spawn_pos;
 }
 
+void Player::select_ship(ShipType type)
+{
+    switch (type)
+    {
+    case Default:
+        data.hp = MAX_HEALTH;
+        data.collision_damage = 10.0f;
+
+        data.torpedo_cooldown = TORPEDO_COOLDOWN;
+        data.torpedo_speed = TORPEDO_SPEED;
+
+        data.normal_radar_interval = 1.3f;
+        data.normal_radar_malfunction_change = 0.0f;
+        data.normal_radar_range = 20.0f;
+        data.normal_radar_info_duration = 2.8f;
+        data.super_radar_cooldown = 5.0f;
+        data.super_radar_info_duration = 5.0f;
+        data.super_radar_exposure = true;
+        break;
+    case Explorer:
+        data.collision_damage = 5.0f;
+        data.normal_radar_interval = 0.8f;
+        data.normal_radar_malfunction_change = 0.4f;
+        data.normal_radar_info_duration = 1.7f;
+        break;
+    case Fighter:
+        data.hp = 120.0f;
+        data.torpedo_speed = 20.0f;
+        data.normal_radar_interval = 1.4f;
+        data.normal_radar_malfunction_change = 0.2f;
+        break;
+    case Quest:
+        data.super_radar_info_duration = 10.0f;
+        data.super_radar_exposure = false;
+        data.normal_radar_range = 13.0f;
+        data.normal_radar_interval = 1.3f;
+        break;
+    default:
+        break;
+    }
+}
 void Player::Controls::send_controls_message(Connection *connection_) const
 {
     assert(connection_);
@@ -312,13 +473,33 @@ bool Player::Controls::recv_controls_message(Connection *connection_)
 
 void Player::PlayerData::send(Connection *connection) const
 {
-    connection->send(torpedo_timer);
-    connection->send(player_facing);
+    // general
+    connection->send(status);
     connection->send(hp);
     connection->send(has_flag);
     connection->send(flag_count);
     connection->send(spawn_pos);
+    connection->send(collision_damage);
+    connection->send(respawn_timer);
+    connection->send(submit_progression);
+    connection->send(submitting);
+
+    // weapon
+    connection->send(torpedo_timer);
+    connection->send(torpedo_cooldown);
+    connection->send(torpedo_speed);
+
+    // radar
+    connection->send(normal_radar_interval);
+    connection->send(normal_radar_malfunction_change);
+    connection->send(normal_radar_range);
+    connection->send(normal_radar_info_duration);
+    connection->send(super_radar_cooldown);
+    connection->send(super_radar_info_duration);
+
+    // light
     connection->send(light_on);
+    connection->send(player_facing);
 };
 
 void Player::PlayerData::receive(uint32_t *at, std::vector<uint8_t> &recv_buffer)
@@ -328,11 +509,32 @@ void Player::PlayerData::receive(uint32_t *at, std::vector<uint8_t> &recv_buffer
         std::memcpy(val, &recv_buffer[4 + *at], sizeof(*val));
         *at += sizeof(*val);
     };
-    read(&torpedo_timer);
-    read(&player_facing);
+
+    // general
+    read(&status);
     read(&hp);
     read(&has_flag);
     read(&flag_count);
     read(&spawn_pos);
+    read(&collision_damage);
+    read(&respawn_timer);
+    read(&submit_progression);
+    read(&submitting);
+
+    // weapon
+    read(&torpedo_timer);
+    read(&torpedo_cooldown);
+    read(&torpedo_speed);
+
+    // radar
+    read(&normal_radar_interval);
+    read(&normal_radar_malfunction_change);
+    read(&normal_radar_range);
+    read(&normal_radar_info_duration);
+    read(&super_radar_cooldown);
+    read(&super_radar_info_duration);
+
+    // light
     read(&light_on);
+    read(&player_facing);
 };

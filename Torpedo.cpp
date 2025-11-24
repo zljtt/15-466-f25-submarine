@@ -26,7 +26,8 @@ int Torpedo::can_collide(const NetworkObject *other) const
     // don't collide with owner
     if (other->id == this->owner)
         return 0;
-
+    if (other->type == ObjectType::SubmitPoint || other->type == ObjectType::Flag)
+        return 0;
     return 1;
 }
 

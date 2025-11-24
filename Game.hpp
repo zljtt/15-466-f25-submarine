@@ -22,6 +22,7 @@ enum class Message : uint8_t
 {
     C2S_Controls = 1, // Greg!
     S2C_State = 's',
+    S2C_Notification = 'n',
     //...
 };
 
@@ -36,11 +37,12 @@ enum class SoundCues : uint8_t
 
 struct Game
 {
+    const int MaxPlayer = 2;
     std::mt19937 mt{0x15466666}; // used for spawning players
     std::uniform_int_distribution<uint32_t> dist{1u, 0xFFFFFFFFu};
 
     uint32_t next_player_number = 1; // used for naming players
-
+    std::unordered_map<Connection *, Player *> connection_to_player;
     std::list<GameObject> static_obstacles;  // the collision box should not be sync, instead generated from the scene on both server and client (if the client needs it)
     std::list<NetworkObject *> game_objects; // the dynamic game object sync to from server to client
     BVH bvh;
@@ -97,8 +99,20 @@ struct Game
     inline static constexpr float Tick = 1.0f / 30.0f;
 
     inline static constexpr float FlagSpawnCooldown = 10;
-    inline static const glm::vec2 FlagSpawnMin = {0, 80};
-    inline static const glm::vec2 FlagSpawnMax = {14, 60};
+
+    inline static const glm::vec2 SubmitPointSpawnPositions[] = {
+        glm::vec2(75, 410),
+        glm::vec2(150, 410),
+        glm::vec2(225, 410),
+    };
+
+    inline static const glm::vec2 FlagSpawnPositions[] = {
+        glm::vec2(104, 341),
+        glm::vec2(50, 341),
+        glm::vec2(145, 300),
+        glm::vec2(174, 341),
+        glm::vec2(137, 361),
+    };
 
     // player constants:
     inline static constexpr float PlayerRadius = 0.03f;
@@ -109,4 +123,6 @@ struct Game
     // send game state.
     //   Will move "connection_player" to the front of the front of the sent list.
     void send_state_message(Connection *connection, Player *connection_player = nullptr) const;
+
+    void send_notification_message(Player *connection_player, std::string notification) const;
 };

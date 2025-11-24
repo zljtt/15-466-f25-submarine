@@ -1,32 +1,127 @@
 #include "PlayMode.hpp"
 #include "Registry.hpp"
+#include <sstream>
+
+static Player::Status prev;
+
+void PlayMode::add_notification(std::string message, float time)
+{
+    notifications.emplace_back(message, 5.0f);
+}
+
+void PlayMode::update_notification(float elapsed)
+{
+    // update text ui
+    text_overlays[NOTIFICATION].clear();
+    for (size_t i = 0; i < notifications.size(); i++)
+    {
+        text_overlays[NOTIFICATION].update_text("notification_" + std::to_string(i),
+                                                notifications[i].text, glm::vec2(10.0f, -50.0f - i * 50.0f),
+                                                UIOverlay::TopLeft);
+        notifications[i].time -= elapsed;
+    }
+    notifications.erase(
+        std::remove_if(notifications.begin(), notifications.end(),
+                       [](const Notification &n)
+                       { return n.time < 0.0f; }),
+        notifications.end());
+}
 
 void PlayMode::update_ui(float elapsed)
 {
-    // Torpedo cooldown
-    std::string torpedo_text = std::string("READY!!");
-    if (local_player_data().torpedo_timer <= Player::TORPEDO_COOLDOWN)
+    // on status change
+    if (local_player_data().status != prev)
     {
-        torpedo_text = std::to_string(local_player_data().torpedo_timer);
+        text_overlays[GUI].clear();
     }
-    text_overlays[GUI].update_text("torpedo_cooldown", torpedo_text, glm::vec2(-200, 10), UIOverlay::BottomRight);
-
-    // HP Text
-    text_overlays[GUI].update_text(HP, "HP: " + std::to_string((int)local_player_data().hp), glm::vec2(-200, -100), UIOverlay::TopRight);
-
-    // Player flag text
-    text_overlays[GUI].remove_texts([](std::string const &key)
-                                    { return key.rfind("Flag_", 0) == 0; });
-    auto players = get_objects(ObjectType::Player);
-    for (auto &player : players)
+    prev = local_player_data().status;
+    // loop status
+    switch (local_player_data().status)
     {
-        auto data = player_data.find(player.id);
-        if (data != player_data.end())
+    case Player::RespawnSelect:
+    {
+        std::stringstream spawntime;
+        spawntime << std::fixed << std::setprecision(2) << local_player_data().respawn_timer;
+        text_overlays[GUI].update_text("respawn_timer", "Respawn in " + spawntime.str() + " seconds", glm::vec2(-100, 600), UIOverlay::Bottom);
+    }
+    case Player::NotReady:
+    {
+        text_overlays[GUI].update_image("select_ship", ui_select_ship->tex, glm::vec2(640, 410), glm::vec2(640, 360) - glm::vec2(640, 410) / 2.0f);
+        text_overlays[GUI].update_text("ship1", "Explorer", glm::vec2(-150, 510), UIOverlay::Bottom);
+        text_overlays[GUI].update_text("ship1_explain", "A strong radar, but sometimes malfunction", glm::vec2(-150, 460), UIOverlay::Bottom);
+        text_overlays[GUI].update_text("ship2", "Fighter", glm::vec2(-150, 380), UIOverlay::Bottom);
+        text_overlays[GUI].update_text("ship2_explain", "Higher HP, but weaker radar.", glm::vec2(-150, 330), UIOverlay::Bottom);
+        text_overlays[GUI].update_text("ship3", "Seeker", glm::vec2(-150, 250), UIOverlay::Bottom);
+        text_overlays[GUI].update_text("ship3_explain", "Strong and undetectable super scan, but weaker radar.", glm::vec2(-150, 200), UIOverlay::Bottom);
+
+        text_overlays[GUI].update_text("prompt", "Select Ship using [1,2,3]", glm::vec2(-100, 100), UIOverlay::Bottom);
+
+        break;
+    }
+    case Player::Ready:
+    {
+        int i = 0;
+        for (auto player : player_data)
         {
-            std::string pk = "Flag_" + std::to_string(player.id);
-            glm::vec2 pos = world_to_screen(glm::vec3(player.position, 0), text_overlays[GUI].renderer);
-            text_overlays[GUI].update_text(pk, data->second.has_flag ? "⚑" : "", pos + glm::vec2(-10.0f, 20.0f));
+            i++;
+            auto ready = (player.second.status == Player::Ready) ? "Ready" : "Not Ready";
+            auto local = (player.first == local_player->id) ? " (YOU)" : "";
+            auto text = "Player " + std::to_string(i) + local + ": " + ready;
+            text_overlays[GUI].update_text("p" + std::to_string(player.first), text, glm::vec2(-100, 440 - i * 50), UIOverlay::Bottom);
         }
+        auto pc = "(" + std::to_string(i) + "/" + std::to_string(4) + ")";
+        text_overlays[GUI].update_text("ready", "Waiting for Player " + pc, glm::vec2(-100, 440), UIOverlay::Bottom);
+        break;
+    }
+    case Player::Play:
+    {
+        // Torpedo cooldown
+        std::string torpedo_text = std::string("READY!!");
+        if (local_player_data().torpedo_timer <= Player::TORPEDO_COOLDOWN)
+        {
+            torpedo_text = std::to_string(local_player_data().torpedo_timer);
+        }
+        text_overlays[GUI].update_text("torpedo_cooldown", torpedo_text, glm::vec2(-200, 10), UIOverlay::BottomRight);
+        // HP Text
+        text_overlays[GUI].update_text(HP, "HP: " + std::to_string((int)local_player_data().hp), glm::vec2(-200, -100), UIOverlay::TopRight);
+
+        // Submit flag
+        text_overlays[LARGE_TEXT].remove_texts([](std::string const &key)
+                                               { return key == "submitting"; });
+        if (local_player_data().submitting)
+        {
+            int progress = int((local_player_data().submit_progression / 10.0f) * 100.0f);
+            text_overlays[LARGE_TEXT].update_text("submitting", "Submitting Objective - " + std::to_string(progress) + "%", glm::vec2(-120, -100), UIOverlay::Top);
+        }
+
+        // Player flag text
+        text_overlays[GUI].remove_texts([](std::string const &key)
+                                        { return key.rfind("Flag_", 0) == 0; });
+        auto players = get_objects(ObjectType::Player);
+        for (auto &player : players)
+        {
+            auto data = player_data.find(player.id);
+            if (data != player_data.end())
+            {
+                std::string pk = "Flag_" + std::to_string(player.id);
+                glm::vec2 pos = world_to_screen(glm::vec3(player.position, 0), text_overlays[GUI].renderer);
+                text_overlays[GUI].update_text(pk, data->second.has_flag ? "⚑" : "", pos + glm::vec2(-10.0f, 20.0f));
+            }
+        }
+        break;
+    }
+
+    case Player::RespawnWait:
+    {
+        std::stringstream spawntime;
+        spawntime << std::fixed << std::setprecision(2) << local_player_data().respawn_timer;
+        text_overlays[GUI].update_text("respawn_timer", "Respawn in " + spawntime.str() + " seconds", glm::vec2(-100, 600), UIOverlay::Bottom);
+        break;
+    }
+    case Player::GameOver:
+        break;
+    default:
+        break;
     }
 }
 
@@ -43,11 +138,14 @@ void PlayMode::draw_overlay(glm::uvec2 const &drawable_size)
     DrawLines hud(P * V);
 
     // draw spawn point
-    glm::vec3 spawn(local_player_data().spawn_pos, 0);
-    hud.draw(spawn + glm::vec3(-5, 0, 0), spawn + glm::vec3(5, 0, 0), glm::u8vec4(0, 255, 0, 255));
-    hud.draw(spawn + glm::vec3(0, -5, 0), spawn + glm::vec3(0, 5, 0), glm::u8vec4(0, 255, 0, 255));
-    // draw radar
-    radar.render(hud);
+    // glm::vec3 spawn(local_player_data().spawn_pos, 0);
+    if (local_player_data().status == Player::Play)
+    {
+        // hud.draw(spawn + glm::vec3(-5, 0, 0), spawn + glm::vec3(5, 0, 0), glm::u8vec4(0, 255, 0, 255));
+        // hud.draw(spawn + glm::vec3(0, -5, 0), spawn + glm::vec3(0, 5, 0), glm::u8vec4(0, 255, 0, 255));
+        // draw radar
+        radar.render(hud);
+    }
 
     // render text
     for (auto text_overlay : text_overlays)

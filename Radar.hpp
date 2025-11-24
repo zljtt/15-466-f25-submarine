@@ -51,7 +51,8 @@ struct Radar
     glm::u8vec4 default_color = {0x6f, 0x6f, 0x6f, 0x6f};
     std::vector<ScanPath> paths;
     std::vector<ScanResult> results;
-    float special_radar_timer;
+    float special_radar_timer = 0.0f;
+    float radar_timer = 0.0f;
 
     PlayMode *client_game;
 
@@ -65,7 +66,7 @@ struct Radar
         std::random_device rng;
         gen = std::mt19937(rng());
         int lo = static_cast<int>(-RADAR_POINT_SIZE * 0.1f);
-        int hi = static_cast<int>( RADAR_POINT_SIZE * 0.1f);
+        int hi = static_cast<int>(RADAR_POINT_SIZE * 0.1f);
         rand_size = std::uniform_int_distribution<int>(lo, hi);
         rand_float = std::uniform_real_distribution<float>(0.0f, 1.0f);
     }

@@ -16,7 +16,9 @@ enum class ObjectType : uint8_t
     Obstacle = 0,
     Player = 1,
     Torpedo = 2,
-    Flag = 3
+    Flag = 3,
+    SubmitPoint = 4,
+    Ammo = 5
 };
 
 /**
@@ -64,9 +66,9 @@ struct NetworkObject : GameObject
     // server side function to add a cue to send
     void add_sound_cue(uint8_t s)
     {
-        //std::cout << "adding sound cue" << static_cast<int>(s) << "to" << static_cast<int>(sound_cues) << std::endl;
+        // std::cout << "adding sound cue" << static_cast<int>(s) << "to" << static_cast<int>(sound_cues) << std::endl;
         sound_cues |= s;
-        //std::cout << "now " << id << " has " << static_cast<int>(sound_cues) << std::endl;
+        // std::cout << "now " << id << " has " << static_cast<int>(sound_cues) << std::endl;
     }
 
     // server only, set to true to mark this object as deleted
@@ -109,9 +111,27 @@ struct Player : NetworkObject
     static constexpr float DRAG_S = 0.5f;
     // combat
     static constexpr float TORPEDO_COOLDOWN = 1.0f;
+    static constexpr float TORPEDO_SPEED = 15.0f;
     static constexpr float MAX_HEALTH = 100.0f;
     static constexpr float SUPER_RADAR_EXPOSURE_TIME = 5.0f;
 
+    enum ShipType : uint8_t
+    {
+        Default = 0,
+        Explorer = 1,
+        Fighter = 2,
+        Quest = 3,
+    };
+
+    enum Status : uint8_t
+    {
+        NotReady = 0,
+        Ready = 1,
+        Play = 2,
+        RespawnSelect = 3,
+        RespawnWait = 4,
+        GameOver = 5,
+    };
     // player inputs (sent from client):
     struct Controls
     {
@@ -131,15 +151,22 @@ struct Player : NetworkObject
     struct PlayerData
     {
         // general
+        Status status = NotReady;
         float hp = MAX_HEALTH;
         bool has_flag = false;
         int flag_count = 0;
         glm::vec2 spawn_pos;
         bool engineStarted = false;
         float collision_damage = 10.0f; // server
+        float respawn_timer = 0.0f;
+        float i_frame = 0.0f; // server
+        float submit_progression = 0.0f;
+        bool submitting = false;
 
         // weapon
         float torpedo_timer = 0.0f;
+        float torpedo_cooldown = TORPEDO_COOLDOWN;
+        float torpedo_speed = TORPEDO_SPEED;
 
         // radar
         float normal_radar_interval = 0.8f; // 1.3
@@ -156,6 +183,7 @@ struct Player : NetworkObject
 
         void send(Connection *connection) const;
         void receive(uint32_t *at, std::vector<uint8_t> &recv_buffer);
+
     } data;
 
     virtual void init() override;
@@ -166,6 +194,9 @@ struct Player : NetworkObject
     void update_control(float elapsed, Game *game);
     void update_win_lose(float elapsed, Game *game);
     void take_damage(Game *game, float damage, GameObject *source);
+    // always call select default ship before assigning to a special ship in order to set to default values
+    void select_ship(ShipType type);
+
     void die(Game *game, GameObject *source);
 };
 
@@ -192,6 +223,26 @@ struct Flag : NetworkObject
 {
     Flag() {};
     virtual ~Flag() {};
+
+    // virtual bool can_collide(const NetworkObject *other) const override;
+    virtual void update(float elapsed, Game *game) override;
+    virtual void init() override;
+};
+
+struct SubmitPoint : NetworkObject
+{
+    SubmitPoint() {};
+    virtual ~SubmitPoint() {};
+
+    // virtual bool can_collide(const NetworkObject *other) const override;
+    virtual void update(float elapsed, Game *game) override;
+    virtual void init() override;
+};
+
+struct Ammo : NetworkObject
+{
+    Ammo() {};
+    virtual ~Ammo() {};
 
     // virtual bool can_collide(const NetworkObject *other) const override;
     virtual void update(float elapsed, Game *game) override;

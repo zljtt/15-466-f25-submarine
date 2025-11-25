@@ -81,7 +81,7 @@ void PlayMode::update_ui(float elapsed)
             auto text = "Player " + std::to_string(i) + local + ": " + ready;
             text_overlays[GUI].update_text("p" + std::to_string(player.first), text, glm::vec2(-100, 440 - i * 50), UIOverlay::Bottom);
         }
-        auto pc = "(" + std::to_string(i) + "/" + std::to_string(Game::MaxPlayer) + ")";
+        auto pc = "(" + std::to_string(i) + "/" + std::to_string(level_data.max_player) + ")";
         text_overlays[GUI].update_text("ready", "Waiting for Player " + pc, glm::vec2(-100, 440), UIOverlay::Bottom);
         break;
     }

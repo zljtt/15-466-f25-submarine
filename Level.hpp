@@ -17,6 +17,7 @@ struct Level
         float duration;
     };
     Status status = Prepare;
+    int max_player;
     std::vector<RevealedObject> revealed_objects;
 
     std::vector<glm::vec2> submit_spawn_pos;
@@ -42,6 +43,7 @@ struct Level
     void send(Connection *connection) const
     {
         connection->send(status);
+        connection->send(max_player);
         connection->send(uint8_t(revealed_objects.size()));
         for (auto ro : revealed_objects)
         {
@@ -57,10 +59,12 @@ struct Level
             *at += sizeof(*val);
         };
         read(&status);
+        read(&max_player);
 
         revealed_objects.clear();
         uint8_t ro_count;
         read(&ro_count);
+
         for (int i = 0; i < ro_count; i++)
         {
             RevealedObject obj;

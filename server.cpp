@@ -42,9 +42,9 @@ int main(int argc, char **argv)
 
         //------------ argument parsing ------------
 
-        if (argc != 2)
+        if (argc != 3)
         {
-            std::cerr << "Usage:\n\t./server <port>" << std::endl;
+            std::cerr << "Usage:\n\t./server <port> <player count>" << std::endl;
             return 1;
         }
 
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
         // keep track of which connection is controlling which player:
         // keep track of game state:
         Game game;
-
+        game.level.max_player = std::stoi(argv[2]);
         std::vector<GameObject> obstacles;
         auto on_drawable = [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name)
         {
@@ -68,7 +68,7 @@ int main(int argc, char **argv)
             game.static_obstacles.emplace_back(transform->position, transform->scale);
             obstacles.emplace_back(transform->position, transform->scale);
         };
-        Scene(data_path("prototype.scene"), on_drawable);
+        Scene(data_path("resource/scene/prototype.scene"), on_drawable);
         game.bvh.build(std::move(obstacles));
 
         while (true)

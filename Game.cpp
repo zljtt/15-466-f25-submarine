@@ -28,7 +28,7 @@ Game::Game()
         }
     };
 
-    Scene(data_path("prototype_marker.scene"), on_drawable);
+    Scene(data_path("resource/scene/prototype_marker.scene"), on_drawable);
     std::cout << "flag count " << std::to_string(level.black_box_pos.size()) << "\n";
     std::cout << "submit count " << std::to_string(level.submit_spawn_pos.size()) + "\n";
 }
@@ -73,7 +73,7 @@ void Game::update(float elapsed)
     case Level::Prepare:
     {
         auto players = get_objects<Player>();
-        if (players.size() >= MaxPlayer)
+        if (players.size() >= level.max_player)
         {
             int ready = 0;
             for (auto p : players)

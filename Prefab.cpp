@@ -14,7 +14,7 @@ GLuint prefab_meshes_for_lit_color_texture_program = 0;
 
 Load<MeshBuffer> prototype_prefab_meshes(LoadTagDefault, []() -> MeshBuffer const *
                                          {
-	MeshBuffer const *ret = new MeshBuffer(data_path("prototype_prefab.pnct"));
+	MeshBuffer const *ret = new MeshBuffer(data_path("resource/scene/prototype_prefab.pnct"));
 	// meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
     prefab_meshes_for_lit_color_texture_program = ret->make_vao_for_program(basic_material_forward_program->program);
 	return ret; });
@@ -38,12 +38,12 @@ Load<Prefab> prefab_propeller(LoadTagLate, []() -> Prefab const *
                               { return new Prefab("Propeller"); });
 
 Load<Prefab> prefab_torpedo_head(LoadTagLate, []() -> Prefab const *
-                              { return new Prefab("Torpedo_head"); });
+                                 { return new Prefab("Torpedo_head"); });
 
 // Load<Prefab> prefab_spotlight_mesh(LoadTagLate, []() -> Prefab const *
 //                          { return new Prefab("SpotlightMesh"); });
 Load<Prefab> prefab_spotlight_mesh(LoadTagLate, []() -> Prefab const *
-                         { return new Prefab("SpotlightMesh"); });
+                                   { return new Prefab("SpotlightMesh"); });
 
 Scene::Drawable *Prefab::create_drawable(Scene &scene, glm::vec3 pos, glm::vec3 scale, glm::quat rotation) const
 {

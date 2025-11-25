@@ -37,6 +37,9 @@ Load<Prefab> prefab_submit_point(LoadTagLate, []() -> Prefab const *
 Load<Prefab> prefab_propeller(LoadTagLate, []() -> Prefab const *
                               { return new Prefab("Propeller"); });
 
+Load<Prefab> prefab_torpedo_head(LoadTagLate, []() -> Prefab const *
+                              { return new Prefab("Torpedo_head"); });
+
 // Load<Prefab> prefab_spotlight_mesh(LoadTagLate, []() -> Prefab const *
 //                          { return new Prefab("SpotlightMesh"); });
 

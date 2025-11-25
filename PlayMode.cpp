@@ -394,6 +394,16 @@ void PlayMode::update_animation(float elapsed)
             }
         }
     }
+
+    //torpedo facing aligns with its velocity
+    for(auto obj: network_objects){
+        if(obj.type == ObjectType::Torpedo){
+            float theta = std::atan2(obj.velocity.y, obj.velocity.x);
+            glm::quat rotation = glm::angleAxis(theta, glm::vec3(0,0,1));
+            network_drawables[obj.id]->transform->rotation = glm::quat(0,0,0,1) * rotation;
+        }
+    }
+
 }
 
 void PlayMode::update_sound(float elapsed)
@@ -718,12 +728,12 @@ bool PlayMode::recv_state_message(Connection *connection_)
         // create drawable if not exit on client
         if (drawable == network_drawables.end())
         {
+            std::cout<<"scale is "<<obj.scale.x<<" "<<obj.scale.y<<std::endl;
             network_drawables[obj.id] = create_drawable_at(scene, obj.type, glm::vec3(obj.position, 0), glm::vec3(obj.scale, 1));
         }
         // update drawable position
         else
         {
-            // std::cout << "update torpedo\n";
             drawable->second->transform->position = glm::vec3(obj.position, 0);
             drawable->second->transform->scale = glm::vec3(obj.scale, 1);
         }

@@ -1,5 +1,6 @@
 #include "PlayMode.hpp"
 #include "Registry.hpp"
+#include <iomanip>
 #include <sstream>
 
 static Player::Status prev;

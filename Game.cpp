@@ -48,7 +48,8 @@ void Game::remove_object(uint32_t id)
 }
 
 void Game::update(float elapsed)
-{
+{   
+
     switch (level.status)
     {
     case Level::Prepare:
@@ -79,9 +80,9 @@ void Game::update(float elapsed)
     {
         // spawn flag
         auto flags = get_objects<Flag>();
-        auto players = get_objects<Player>();
+        auto players_ = get_objects<Player>();
         bool has_flag = false;
-        for (auto p : players)
+        for (auto p : players_)
             if (p->data.has_flag)
                 has_flag = true;
         if (flags.size() == 0 && !has_flag)
@@ -101,8 +102,8 @@ void Game::update(float elapsed)
                 // PLAY SOUND : new flag spawned
                 flag->add_sound_cue(static_cast<uint8_t>(SoundCues::JustSpawned));
                 // UI NOTIFY : new flag spawned
-                auto players = get_objects<Player>();
-                for (auto p : players)
+                auto players__ = get_objects<Player>();
+                for (auto p : players__)
                 {
                     send_notification_message(p, "A BlackBox is spawned.");
                 }

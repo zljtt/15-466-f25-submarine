@@ -229,6 +229,7 @@ void Player::update_weapon(float elapsed, Game *game)
     }
     else
     {
+        
         data.torpedo_timer += elapsed;
     }
 }
@@ -343,9 +344,9 @@ void Player::die(Game *game, GameObject *source)
     position = data.spawn_pos;
 }
 
-void Player::select_ship(ShipType type)
+void Player::select_ship(ShipType obj_type)
 {
-    switch (type)
+    switch (obj_type)
     {
     case Default:
         data.hp = MAX_HEALTH;

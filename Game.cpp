@@ -118,10 +118,25 @@ void Game::update(float elapsed)
                 flag_spawn_timer = FlagSpawnCooldown;
             }
         }
+        for (auto player : players)
+        {
+            if (player->data.flag_count >= Game::MaxBlackBox)
+            {
+                level.status = Level::End;
+                break;
+            }
+        }
         break;
     }
     case Level::End:
+    {
+        auto players = get_objects<Player>();
+        for (auto player : players)
+        {
+            player->data.status = Player::Status::GameOver;
+        }
         break;
+    }
     default:
         break;
     }

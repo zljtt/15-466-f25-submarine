@@ -116,14 +116,14 @@ struct PlayMode : Mode
     void draw_overlay(glm::uvec2 const &drawable_size);
     glm::vec2 local_player_pos();
 
-    float water_surface_y = 450.0f; // 200
-    float max_depth = 380.0f;       // 100
+    float water_surface_y = 570.0f;
+    float max_depth = 100.0f;
     glm::vec3 base_water_color = glm::vec3(0.0f, 0.06f, 0.12f);
     // parameter: remaining energy percentage, depth
-    float k = -std::log(0.1f) / 50.0f;
-
-    float cutoff = glm::radians(20.0f);
-    // std::unordered_map<uint32_t, Scene::Transform *> light_mesh_data;
+    float k = -std::log(0.3f) / 100.0f;
+    float spotlight_z = 0.0f;
+    float cutoff = glm::radians(8.0f);
+    std::unordered_map<uint32_t, Scene::Transform *> light_mesh_data;
 
     // used by client:
     // set game state from data in connection buffer

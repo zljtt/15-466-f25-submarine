@@ -150,6 +150,8 @@ struct Player : NetworkObject
     // additional player data
     struct PlayerData
     {
+        int pid;
+
         // general
         Status status = NotReady;
         float hp = MAX_HEALTH;
@@ -205,8 +207,8 @@ struct Torpedo : NetworkObject
     Torpedo() {};
     virtual ~Torpedo() {};
     // time till torpedo explode on its own
-    static constexpr float TORPEDO_LIFETIME = 3.0f;
-    static constexpr float TORPEDO_SPEED = 25.0f;
+    static constexpr float TORPEDO_LIFETIME = 4.0f;
+    static constexpr float TORPEDO_SPEED = 40.0f;
     static constexpr float TORPEDO_DAMAGE = 30.0f;
 
     // Torpedo states

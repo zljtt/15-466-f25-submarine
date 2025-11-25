@@ -163,16 +163,26 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
             return true;
         }
         //
-        else if (evt.key.key == SDLK_U)
-        {
-            camera->transform->position.z -= 10.0f;
-            return true;
-        }
-        else if (evt.key.key == SDLK_J)
-        {
-            camera->transform->position.z += 10.0f;
-            return true;
-        }
+        // else if (evt.key.key == SDLK_U)
+        // {
+        //     camera->transform->position.z -= 10.0f;
+        //     return true;
+        // }
+        // else if (evt.key.key == SDLK_J)
+        // {
+        //     camera->transform->position.z += 10.0f;
+        //     return true;
+        // }
+        // else if (evt.key.key == SDLK_I)
+        // {
+        //     spotlight_z -= 1.0f;
+        //     return true;
+        // }
+        // else if (evt.key.key == SDLK_K)
+        // {
+        //     spotlight_z += 1.0f;
+        //     return true;
+        // }
     }
     else if (evt.type == SDL_EVENT_KEY_UP)
     {
@@ -452,10 +462,15 @@ void PlayMode::update_spotlight(float elapsed)
     //     spot_light_dir_x = 1.0f;
     // else if (velocity.x < -1e-3f)
     //     spot_light_dir_x = -1.0f;
-
-    // for (auto p: player_data) {
-    //     light_mesh_data[p.first] = network_drawables[p.first]->transform;
-    // }
+    
+    for (auto p: player_data) {
+        light_mesh_data[p.first]->scale = p.second.light_on? glm::vec3(3.0f, 3.0f, 10.0f) : glm::vec3(0.0f, 0.0f, 0.0f);
+        glm::vec3 pos_offset = p.second.player_facing ? glm::vec3(11.0f, 0.0f, 0.0f) : glm::vec3(-11.0f, 0.0f, 0.0f);
+        glm::quat rot = p.second.player_facing ? 
+            glm::angleAxis(glm::radians(-90.0f), glm::vec3(0,1,0)) : glm::angleAxis(glm::radians(90.0f), glm::vec3(0,1,0));
+        light_mesh_data[p.first]->position = network_drawables[p.first]->transform->position + pos_offset;
+        light_mesh_data[p.first]->rotation = rot;
+    }
 }
 
 void PlayMode::draw(glm::uvec2 const &drawable_size)
@@ -474,6 +489,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
     atten *= complete_fade_factor;
     glm::vec3 water_color = base_water_color * atten;
 
+    
     // std::cout << "player y: " << player_pos.y << std::endl;
     // std::cout << "depth: " << depth << std::endl;
     // std::cout << "atten: " << atten << std::endl;
@@ -534,8 +550,8 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
 
     // player point light
     {
-        glm::vec3 point_light_pos(player_pos.x, player_pos.y, 1.5f);
-        glm::vec3 point_light_energy(0.3f, 0.3f, 0.3f);
+        glm::vec3 point_light_pos(player_pos.x, player_pos.y, 2.0f);
+        glm::vec3 point_light_energy(10.0f, 10.0f, 10.0f);
         // glm::vec3 point_light_energy(0.0f, 0.0f, 0.0f);
 
         light_types.push_back(0); // point
@@ -569,12 +585,26 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
             continue;
         auto player = get_object(data.first);
 
-        glm::vec3 spot_light_pos(player.position.x, player.position.y, 0.0f);
+        glm::vec3 spot_light_pos(player.position.x, player.position.y, spotlight_z);
         glm::vec3 spot_light_energy(250.0f, 250.0f, 250.0f);
 
         glm::vec3 spot_light_dir(data.second.player_facing ? 1.0f : -1.0f, 0.0f, 0.0f);
         spot_light_dir = glm::normalize(spot_light_dir);
         float cos_cutoff = std::cos(cutoff);
+
+        // spot_light_dir = -spot_light_dir;
+
+        // std::cout << "spotlight pos: " 
+        // << spot_light_pos.x << " "
+        // << spot_light_pos.y << " "
+        // << spot_light_pos.z << " "
+        // << std::endl;
+
+        // std::cout << "spotlight dir: " 
+        // << spot_light_dir.x << " "
+        // << spot_light_dir.y << " "
+        // << spot_light_dir.z << " "
+        // << std::endl;
 
         light_types.push_back(2); // spot
         light_poss.push_back(spot_light_pos);
@@ -730,6 +760,17 @@ bool PlayMode::recv_state_message(Connection *connection_)
         {
             std::cout<<"scale is "<<obj.scale.x<<" "<<obj.scale.y<<std::endl;
             network_drawables[obj.id] = create_drawable_at(scene, obj.type, glm::vec3(obj.position, 0), glm::vec3(obj.scale, 1));
+
+            if (obj.type == ObjectType::Player) {
+                glm::quat rot = glm::angleAxis(glm::radians(-90.0f), glm::vec3(0,1,0));
+
+                Scene::Drawable* cone = prefab_spotlight_mesh->create_drawable(scene, glm::vec3(obj.position, 0), glm::vec3(3.0f, 3.0f, 10.0f), rot);
+                
+                cone->pipeline.is_transparent = true;
+                cone->pipeline.set_uniforms = []() {glUniform1i(basic_material_forward_program->IS_LIGHT_CONE_int, 1);};
+                
+                light_mesh_data[obj.id] = cone->transform;
+            }
         }
         // update drawable position
         else

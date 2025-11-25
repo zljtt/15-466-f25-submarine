@@ -33,6 +33,41 @@ int Torpedo::can_collide(const NetworkObject *other) const
 
 void Torpedo::update(float elapsed, Game *game)
 {
+    Player *target = nullptr;
+    float best_dist2 = std::numeric_limits<float>::max();
+
+    for (auto *p : game->get_objects<Player>())
+    {
+        glm::vec2 to_player = p->position - position;
+        float d2 = dot(to_player, to_player);
+        if (d2 < best_dist2)
+        {
+            best_dist2 = d2;
+            target = p;
+        }
+    }
+
+    if (target)
+    {
+        glm::vec2 to_target = target->position - position;
+
+        if (dot(to_target, to_target) > 0.0001f && dot(velocity, velocity) > 0.0001f)
+        {
+            glm::vec2 desired_dir = normalize(to_target);
+            glm::vec2 current_dir = normalize(velocity);
+
+            const float homing_strength = 2.0f;
+            float t = homing_strength * elapsed;
+            if (t > 1.0f)
+                t = 1.0f;
+
+            glm::vec2 new_dir = normalize(current_dir * (1.0f - t) + desired_dir * t);
+
+            float speed = length(velocity);
+            velocity = new_dir * speed;
+        }
+    }
+
     auto hits = move_with_collision(game, velocity * elapsed);
 
     //tracking torpedoes(rotating the velocity vector)

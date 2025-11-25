@@ -42,6 +42,8 @@ Load<Prefab> prefab_torpedo_head(LoadTagLate, []() -> Prefab const *
 
 // Load<Prefab> prefab_spotlight_mesh(LoadTagLate, []() -> Prefab const *
 //                          { return new Prefab("SpotlightMesh"); });
+Load<Prefab> prefab_spotlight_mesh(LoadTagLate, []() -> Prefab const *
+                         { return new Prefab("SpotlightMesh"); });
 
 Scene::Drawable *Prefab::create_drawable(Scene &scene, glm::vec3 pos, glm::vec3 scale, glm::quat rotation) const
 {

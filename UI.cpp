@@ -34,6 +34,7 @@ void PlayMode::update_ui(float elapsed)
     if (local_player_data().status != prev)
     {
         text_overlays[GUI].clear();
+        text_overlays[LARGE_TEXT].clear();
     }
     prev = local_player_data().status;
     // loop status
@@ -70,21 +71,41 @@ void PlayMode::update_ui(float elapsed)
             auto text = "Player " + std::to_string(i) + local + ": " + ready;
             text_overlays[GUI].update_text("p" + std::to_string(player.first), text, glm::vec2(-100, 440 - i * 50), UIOverlay::Bottom);
         }
-        auto pc = "(" + std::to_string(i) + "/" + std::to_string(4) + ")";
+        auto pc = "(" + std::to_string(i) + "/" + std::to_string(Game::MaxPlayer) + ")";
         text_overlays[GUI].update_text("ready", "Waiting for Player " + pc, glm::vec2(-100, 440), UIOverlay::Bottom);
         break;
     }
     case Player::Play:
     {
+        // points
+        int i = 0;
+        text_overlays[GUI].update_text("p0", "Black Box Submitted", glm::vec2(-200, -20), UIOverlay::TopRight);
+        for (auto player : player_data)
+        {
+            i++;
+            auto name = (player.first == local_player->id) ? "You " : "Player " + std::to_string(i);
+            auto count = std::to_string(player.second.flag_count) + "/" + std::to_string(Game::MaxBlackBox);
+            text_overlays[GUI].update_text("p1_" + std::to_string(player.first), name, glm::vec2(-200, -20 - i * 40), UIOverlay::TopRight);
+            text_overlays[GUI].update_text("p2_" + std::to_string(player.first), count, glm::vec2(-100, -20 - i * 40), UIOverlay::TopRight);
+        }
+
         // Torpedo cooldown
-        std::string torpedo_text = std::string("READY!!");
+        std::string torpedo_text = std::string("Torpedo : READY!!");
         if (local_player_data().torpedo_timer <= Player::TORPEDO_COOLDOWN)
         {
-            torpedo_text = std::to_string(local_player_data().torpedo_timer);
+            float t = int((Player::TORPEDO_COOLDOWN - local_player_data().torpedo_timer) * 100.0f) / 100.0f;
+            torpedo_text = "Torpedo : " + std::to_string(t);
         }
-        text_overlays[GUI].update_text("torpedo_cooldown", torpedo_text, glm::vec2(-200, 10), UIOverlay::BottomRight);
+        text_overlays[GUI].update_text("torpedo_cooldown", torpedo_text, glm::vec2(-200, 20), UIOverlay::BottomRight);
+        std::string radar_text = std::string("Super Scan : READY!!");
+        if (radar.special_radar_timer > 0)
+        {
+            float t = int(radar.special_radar_timer * 100.0f) / 100.0f;
+            radar_text = "Super Scan : " + std::to_string(t);
+        }
+        text_overlays[GUI].update_text("super_radar_cooldown", radar_text, glm::vec2(-200, 40), UIOverlay::BottomRight);
         // HP Text
-        text_overlays[GUI].update_text(HP, "HP: " + std::to_string((int)local_player_data().hp), glm::vec2(-200, -100), UIOverlay::TopRight);
+        text_overlays[LARGE_TEXT].update_text(HP, "HP: " + std::to_string((int)local_player_data().hp), glm::vec2(-50, 30), UIOverlay::Bottom);
 
         // Submit flag
         text_overlays[LARGE_TEXT].remove_texts([](std::string const &key)
@@ -111,7 +132,6 @@ void PlayMode::update_ui(float elapsed)
         }
         break;
     }
-
     case Player::RespawnWait:
     {
         std::stringstream spawntime;
@@ -120,7 +140,20 @@ void PlayMode::update_ui(float elapsed)
         break;
     }
     case Player::GameOver:
+    {
+        int i = 0;
+        for (auto player : player_data)
+        {
+            i++;
+            if (player.second.flag_count >= Game::MaxBlackBox)
+            {
+                auto name = (player.first == local_player->id) ? "You win the game!" : "Player " + std::to_string(i) + " wins the game!";
+                text_overlays[LARGE_TEXT].update_text("win/lose", name, glm::vec2(-100, 300), UIOverlay::Bottom);
+                break;
+            }
+        }
         break;
+    }
     default:
         break;
     }

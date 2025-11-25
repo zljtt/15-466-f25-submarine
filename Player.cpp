@@ -229,7 +229,7 @@ void Player::update_weapon(float elapsed, Game *game)
     }
     else
     {
-        
+
         data.torpedo_timer += elapsed;
     }
 }
@@ -293,11 +293,11 @@ void Player::update_win_lose(float elapsed, Game *game)
         {
             if (p->id == this->id)
             {
-                game->send_notification_message(p, "Point Obtained!");
+                game->send_notification_message(p, "BlackBox submitted!");
             }
             else
             {
-                game->send_notification_message(p, "A Submarine gets 1 point");
+                game->send_notification_message(p, "A Submarine has submitted a BlackBox");
             }
         }
     }

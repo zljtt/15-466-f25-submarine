@@ -101,19 +101,19 @@ struct Game
 
     inline static constexpr float FlagSpawnCooldown = 10;
 
-    inline static const glm::vec2 SubmitPointSpawnPositions[] = {
-        glm::vec2(75, 410),
-        glm::vec2(150, 410),
-        glm::vec2(225, 410),
-    };
+    // inline static const glm::vec2 SubmitPointSpawnPositions[] = {
+    //     glm::vec2(75, 410),
+    //     glm::vec2(150, 410),
+    //     glm::vec2(225, 410),
+    // };
 
-    inline static const glm::vec2 FlagSpawnPositions[] = {
-        glm::vec2(104, 341),
-        glm::vec2(50, 341),
-        glm::vec2(145, 300),
-        glm::vec2(174, 341),
-        glm::vec2(137, 361),
-    };
+    // inline static const glm::vec2 FlagSpawnPositions[] = {
+    //     glm::vec2(104, 341),
+    //     glm::vec2(50, 341),
+    //     glm::vec2(145, 300),
+    //     glm::vec2(174, 341),
+    //     glm::vec2(137, 361),
+    // };
 
     // player constants:
     inline static constexpr float PlayerRadius = 0.03f;

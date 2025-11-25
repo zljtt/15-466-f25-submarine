@@ -19,6 +19,9 @@ struct Level
     Status status = Prepare;
     std::vector<RevealedObject> revealed_objects;
 
+    std::vector<glm::vec2> submit_spawn_pos;
+    std::vector<glm::vec2> black_box_pos;
+
     Level() {
     };
 

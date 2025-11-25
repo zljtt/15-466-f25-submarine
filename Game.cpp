@@ -10,9 +10,22 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/norm.hpp>
 #include "BBox.hpp"
+#include "data_path.hpp"
 
 Game::Game()
 {
+    auto on_drawable = [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name)
+    {
+        if (transform->name.rfind("BlackBox", 0) == 0)
+        {
+            level.black_box_pos.push_back(glm::vec2(transform->position));
+        }
+        else if (transform->name.rfind("SubmitPoint", 0) == 0)
+        {
+            level.submit_spawn_pos.push_back(glm::vec2(transform->position));
+        }
+    };
+    Scene(data_path("prototype_marker.scene"), on_drawable);
 }
 
 Game::~Game()
@@ -48,7 +61,7 @@ void Game::remove_object(uint32_t id)
 }
 
 void Game::update(float elapsed)
-{   
+{
 
     switch (level.status)
     {
@@ -105,14 +118,16 @@ void Game::update(float elapsed)
                 auto players__ = get_objects<Player>();
                 for (auto p : players__)
                 {
-                    send_notification_message(p, "A BlackBox is spawned.");
+                    send_notification_message(p, "A new BlackBox location is revealed.");
                 }
-                std::uniform_int_distribution<int> randflag(0, 4);
-                std::uniform_int_distribution<int> randsubmit(0, 2);
+                assert(level.black_box_pos.size() > 0);
+                assert(level.black_box_pos.size() > 0);
+                std::uniform_int_distribution<int> randflag(0, level.black_box_pos.size());
+                std::uniform_int_distribution<int> randsubmit(0, level.submit_spawn_pos.size());
                 // std::uniform_real_distribution<float> randx(std::min(FlagSpawnMin.x, FlagSpawnMax.x), std::max(FlagSpawnMin.x, FlagSpawnMax.x));
                 // std::uniform_real_distribution<float> randy(std::min(FlagSpawnMin.y, FlagSpawnMax.y), std::max(FlagSpawnMin.y, FlagSpawnMax.y));
-                flag->position = FlagSpawnPositions[randflag(mt)];
-                submit->position = SubmitPointSpawnPositions[randsubmit(mt)];
+                flag->position = level.black_box_pos[randflag(mt)];
+                submit->position = level.submit_spawn_pos[randsubmit(mt)];
 
                 std::cout << "flag spawn at " << flag->position.x << " " << flag->position.y << "\n";
                 flag_spawn_timer = FlagSpawnCooldown;

@@ -405,15 +405,16 @@ void PlayMode::update_animation(float elapsed)
         }
     }
 
-    //torpedo facing aligns with its velocity
-    for(auto obj: network_objects){
-        if(obj.type == ObjectType::Torpedo){
+    // torpedo facing aligns with its velocity
+    for (auto obj : network_objects)
+    {
+        if (obj.type == ObjectType::Torpedo)
+        {
             float theta = std::atan2(obj.velocity.y, obj.velocity.x);
-            glm::quat rotation = glm::angleAxis(theta, glm::vec3(0,0,1));
-            network_drawables[obj.id]->transform->rotation = glm::quat(0,0,0,1) * rotation;
+            glm::quat rotation = glm::angleAxis(theta, glm::vec3(0, 0, 1));
+            network_drawables[obj.id]->transform->rotation = glm::quat(0, 0, 0, 1) * rotation;
         }
     }
-
 }
 
 void PlayMode::update_sound(float elapsed)
@@ -462,12 +463,12 @@ void PlayMode::update_spotlight(float elapsed)
     //     spot_light_dir_x = 1.0f;
     // else if (velocity.x < -1e-3f)
     //     spot_light_dir_x = -1.0f;
-    
-    for (auto p: player_data) {
-        light_mesh_data[p.first]->scale = p.second.light_on? glm::vec3(3.0f, 3.0f, 10.0f) : glm::vec3(0.0f, 0.0f, 0.0f);
+
+    for (auto p : player_data)
+    {
+        light_mesh_data[p.first]->scale = p.second.light_on ? glm::vec3(3.0f, 3.0f, 10.0f) : glm::vec3(0.0f, 0.0f, 0.0f);
         glm::vec3 pos_offset = p.second.player_facing ? glm::vec3(11.0f, 0.0f, 0.0f) : glm::vec3(-11.0f, 0.0f, 0.0f);
-        glm::quat rot = p.second.player_facing ? 
-            glm::angleAxis(glm::radians(-90.0f), glm::vec3(0,1,0)) : glm::angleAxis(glm::radians(90.0f), glm::vec3(0,1,0));
+        glm::quat rot = p.second.player_facing ? glm::angleAxis(glm::radians(-90.0f), glm::vec3(0, 1, 0)) : glm::angleAxis(glm::radians(90.0f), glm::vec3(0, 1, 0));
         light_mesh_data[p.first]->position = network_drawables[p.first]->transform->position + pos_offset;
         light_mesh_data[p.first]->rotation = rot;
     }
@@ -489,7 +490,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
     atten *= complete_fade_factor;
     glm::vec3 water_color = base_water_color * atten;
 
-    
     // std::cout << "player y: " << player_pos.y << std::endl;
     // std::cout << "depth: " << depth << std::endl;
     // std::cout << "atten: " << atten << std::endl;
@@ -594,13 +594,13 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
 
         // spot_light_dir = -spot_light_dir;
 
-        // std::cout << "spotlight pos: " 
+        // std::cout << "spotlight pos: "
         // << spot_light_pos.x << " "
         // << spot_light_pos.y << " "
         // << spot_light_pos.z << " "
         // << std::endl;
 
-        // std::cout << "spotlight dir: " 
+        // std::cout << "spotlight dir: "
         // << spot_light_dir.x << " "
         // << spot_light_dir.y << " "
         // << spot_light_dir.z << " "
@@ -683,7 +683,7 @@ bool PlayMode::recv_notification_message(Connection *connection_)
     };
 
     std::string notification = read_string();
-    notifications.emplace_back(notification, 5.0f);
+    add_notification(notification, 5.0f);
 
     if (at != size)
     {
@@ -758,17 +758,19 @@ bool PlayMode::recv_state_message(Connection *connection_)
         // create drawable if not exit on client
         if (drawable == network_drawables.end())
         {
-            std::cout<<"scale is "<<obj.scale.x<<" "<<obj.scale.y<<std::endl;
+            std::cout << "scale is " << obj.scale.x << " " << obj.scale.y << std::endl;
             network_drawables[obj.id] = create_drawable_at(scene, obj.type, glm::vec3(obj.position, 0), glm::vec3(obj.scale, 1));
 
-            if (obj.type == ObjectType::Player) {
-                glm::quat rot = glm::angleAxis(glm::radians(-90.0f), glm::vec3(0,1,0));
+            if (obj.type == ObjectType::Player)
+            {
+                glm::quat rot = glm::angleAxis(glm::radians(-90.0f), glm::vec3(0, 1, 0));
 
-                Scene::Drawable* cone = prefab_spotlight_mesh->create_drawable(scene, glm::vec3(obj.position, 0), glm::vec3(3.0f, 3.0f, 10.0f), rot);
-                
+                Scene::Drawable *cone = prefab_spotlight_mesh->create_drawable(scene, glm::vec3(obj.position, 0), glm::vec3(3.0f, 3.0f, 10.0f), rot);
+
                 cone->pipeline.is_transparent = true;
-                cone->pipeline.set_uniforms = []() {glUniform1i(basic_material_forward_program->IS_LIGHT_CONE_int, 1);};
-                
+                cone->pipeline.set_uniforms = []()
+                { glUniform1i(basic_material_forward_program->IS_LIGHT_CONE_int, 1); };
+
                 light_mesh_data[obj.id] = cone->transform;
             }
         }

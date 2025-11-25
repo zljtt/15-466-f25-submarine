@@ -7,7 +7,7 @@ static Player::Status prev;
 
 void PlayMode::add_notification(std::string message, float time)
 {
-    notifications.emplace_back(message, 5.0f);
+    notifications.emplace_back(message, time);
 }
 
 void PlayMode::update_notification(float elapsed)
@@ -40,12 +40,7 @@ void PlayMode::update_ui(float elapsed)
     // loop status
     switch (local_player_data().status)
     {
-    case Player::RespawnSelect:
-    {
-        std::stringstream spawntime;
-        spawntime << std::fixed << std::setprecision(2) << local_player_data().respawn_timer;
-        text_overlays[GUI].update_text("respawn_timer", "Respawn in " + spawntime.str() + " seconds", glm::vec2(-100, 600), UIOverlay::Bottom);
-    }
+
     case Player::NotReady:
     {
         text_overlays[GUI].update_image("select_ship", ui_select_ship->tex, glm::vec2(640, 410), glm::vec2(640, 360) - glm::vec2(640, 410) / 2.0f);
@@ -55,8 +50,23 @@ void PlayMode::update_ui(float elapsed)
         text_overlays[GUI].update_text("ship2_explain", "Higher HP, but weaker radar.", glm::vec2(-150, 330), UIOverlay::Bottom);
         text_overlays[GUI].update_text("ship3", "Seeker", glm::vec2(-150, 250), UIOverlay::Bottom);
         text_overlays[GUI].update_text("ship3_explain", "Strong and undetectable super scan, but weaker radar.", glm::vec2(-150, 200), UIOverlay::Bottom);
+        text_overlays[GUI].update_text("prompt", "Select Ship using key [1,2,3]", glm::vec2(-100, 100), UIOverlay::Bottom);
 
-        text_overlays[GUI].update_text("prompt", "Select Ship using [1,2,3]", glm::vec2(-100, 100), UIOverlay::Bottom);
+        text_overlays[GUI].update_text("key0", "<Keybind>", glm::vec2(10, -20), UIOverlay::TopLeft);
+        text_overlays[GUI].update_text("key1", "Move: WASD", glm::vec2(10, -40), UIOverlay::TopLeft);
+        text_overlays[GUI].update_text("key2", "Toggle Flashlight: L", glm::vec2(10, -60), UIOverlay::TopLeft);
+        text_overlays[GUI].update_text("key3", "Super Scan: R", glm::vec2(10, -80), UIOverlay::TopLeft);
+        text_overlays[GUI].update_text("key4", "Launch Torpedo: Space", glm::vec2(10, -100), UIOverlay::TopLeft);
+
+        text_overlays[GUI].update_text("hint0", "<Icons> (Position of the Object)", glm::vec2(10, -150), UIOverlay::TopLeft);
+        text_overlays[GUI].update_image("hint1", tex_radar_flag->tex, glm::vec2(50, 50), glm::vec2(10, -200), UIOverlay::TopLeft);
+        text_overlays[GUI].update_text("hint1", "Black Box", glm::vec2(60, -180), UIOverlay::TopLeft);
+        text_overlays[GUI].update_image("hint2", tex_radar_submit_point->tex, glm::vec2(50, 50), glm::vec2(10, -250), UIOverlay::TopLeft);
+        text_overlays[GUI].update_text("hint2", "Black Box Submit Point", glm::vec2(60, -230), UIOverlay::TopLeft);
+        text_overlays[GUI].update_image("hint3", tex_radar_submarine->tex, glm::vec2(50, 50), glm::vec2(10, -300), UIOverlay::TopLeft);
+        text_overlays[GUI].update_text("hint3", "Other submarine", glm::vec2(60, -280), UIOverlay::TopLeft);
+        text_overlays[GUI].update_image("hint4", tex_radar_radar->tex, glm::vec2(50, 50), glm::vec2(10, -350), UIOverlay::TopLeft);
+        text_overlays[GUI].update_text("hint4", "Submarine using Super Scan", glm::vec2(60, -330), UIOverlay::TopLeft);
 
         break;
     }
@@ -117,19 +127,41 @@ void PlayMode::update_ui(float elapsed)
         }
 
         // Player flag text
-        text_overlays[GUI].remove_texts([](std::string const &key)
-                                        { return key.rfind("Flag_", 0) == 0; });
+        text_overlays[GUI].remove_images([](std::string const &key)
+                                         { return key.rfind("Flag_", 0) == 0; });
         auto players = get_objects(ObjectType::Player);
         for (auto &player : players)
         {
             auto data = player_data.find(player.id);
-            if (data != player_data.end())
+            if (data != player_data.end() && data->second.has_flag)
             {
                 std::string pk = "Flag_" + std::to_string(player.id);
-                glm::vec2 pos = world_to_screen(glm::vec3(player.position, 0), text_overlays[GUI].renderer);
-                text_overlays[GUI].update_text(pk, data->second.has_flag ? "⚑" : "", pos + glm::vec2(-10.0f, 20.0f));
+                auto renderer = text_overlays[GUI].renderer;
+                glm::vec2 pos = world_to_screen(glm::vec3(player.position, 0), renderer);
+                // glm::vec2 pos = client_game->world_to_screen(glm::vec3(p.position, 0), renderer);
+
+                pos.x = std::clamp(pos.x - 50 / 2.0f, 0.0f, (float)renderer->width - 50);
+                pos.y = std::clamp(pos.y - 50 / 2.0f, 0.0f, (float)renderer->height - 50);
+                text_overlays[GUI].update_image(pk, tex_radar_flag->tex, glm::vec2(50, 50), pos);
+                // text_overlays[GUI].update_text(pk, data->second.has_flag ? "⚑" : "", pos + glm::vec2(-10.0f, 20.0f));
             }
         }
+        break;
+    }
+    case Player::RespawnSelect:
+    {
+        std::stringstream spawntime;
+        spawntime << std::fixed << std::setprecision(2) << local_player_data().respawn_timer;
+        text_overlays[GUI].update_text("respawn_timer", "Respawn in " + spawntime.str() + " seconds", glm::vec2(-100, 600), UIOverlay::Bottom);
+        text_overlays[GUI].update_image("select_ship", ui_select_ship->tex, glm::vec2(640, 410), glm::vec2(640, 360) - glm::vec2(640, 410) / 2.0f);
+        text_overlays[GUI].update_text("ship1", "Explorer", glm::vec2(-150, 510), UIOverlay::Bottom);
+        text_overlays[GUI].update_text("ship1_explain", "A strong radar, but sometimes malfunction", glm::vec2(-150, 460), UIOverlay::Bottom);
+        text_overlays[GUI].update_text("ship2", "Fighter", glm::vec2(-150, 380), UIOverlay::Bottom);
+        text_overlays[GUI].update_text("ship2_explain", "Higher HP, but weaker radar.", glm::vec2(-150, 330), UIOverlay::Bottom);
+        text_overlays[GUI].update_text("ship3", "Seeker", glm::vec2(-150, 250), UIOverlay::Bottom);
+        text_overlays[GUI].update_text("ship3_explain", "Strong and undetectable super scan, but weaker radar.", glm::vec2(-150, 200), UIOverlay::Bottom);
+        text_overlays[GUI].update_text("prompt", "Select Ship using [1,2,3]", glm::vec2(-100, 100), UIOverlay::Bottom);
+
         break;
     }
     case Player::RespawnWait:

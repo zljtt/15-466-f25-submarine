@@ -118,6 +118,7 @@ void Game::update(float elapsed)
                 flag_spawn_timer = FlagSpawnCooldown;
             }
         }
+        auto players = get_objects<Player>();
         for (auto player : players)
         {
             if (player->data.flag_count >= Game::MaxBlackBox)

@@ -44,7 +44,7 @@ PlayMode::PlayMode(Client &client_) : scene(*prototype_scene), radar(this), clie
         // local_obstacles.emplace_back(transform->position, transform->scale);
         obstacles.emplace_back(transform->position, transform->scale);
     };
-    Scene(data_path("prototype.scene"), on_drawable);
+    Scene(data_path("resource/scene/prototype.scene"), on_drawable);
     bvh.build(std::move(obstacles));
 
     // create TextEngine and load a font
@@ -550,8 +550,8 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
 
     // player point light
     {
-        glm::vec3 point_light_pos(player_pos.x, player_pos.y, 2.0f);
-        glm::vec3 point_light_energy(10.0f, 10.0f, 10.0f);
+        glm::vec3 point_light_pos(player_pos.x, player_pos.y + 1.8f, 2.5f);
+        glm::vec3 point_light_energy(15.0f, 15.0f, 20.0f);
         // glm::vec3 point_light_energy(0.0f, 0.0f, 0.0f);
 
         light_types.push_back(0); // point

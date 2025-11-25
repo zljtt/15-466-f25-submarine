@@ -68,7 +68,7 @@ int main(int argc, char **argv)
             game.static_obstacles.emplace_back(transform->position, transform->scale);
             obstacles.emplace_back(transform->position, transform->scale);
         };
-        Scene(data_path("prototype.scene"), on_drawable);
+        Scene(data_path("resource/scene/prototype.scene"), on_drawable);
         game.bvh.build(std::move(obstacles));
 
         while (true)

@@ -73,7 +73,7 @@ void Game::update(float elapsed)
     case Level::Prepare:
     {
         auto players = get_objects<Player>();
-        if (players.size() >= MaxPlayer)
+        if (players.size() >= level.max_player)
         {
             int ready = 0;
             for (auto p : players)

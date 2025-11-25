@@ -5,7 +5,7 @@ on:
     types: [created]
 
 env:
-  BASE_NAME: game6
+  BASE_NAME: submarine
   NEST_LIBS_VERSION: v0.14
 
 jobs:

@@ -150,7 +150,7 @@ BasicMaterialForwardProgram::BasicMaterialForwardProgram() {
 
 		"    if (IS_LIGHT_CONE == 1) {\n"
         "        //debug\n"
-        "        fragColor.xyz *= 10;\n"
+        // "        fragColor.xyz *= 10;\n"
 		"        fragColor.w = 0.15;\n"
         "        return;\n"
         "    }\n"

@@ -1,6 +1,7 @@
 #pragma once
 #include "GameObject.hpp"
 #include "Connection.hpp"
+#include <cstring>
 
 struct Level
 {

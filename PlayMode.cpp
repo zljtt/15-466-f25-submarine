@@ -22,6 +22,7 @@
 
 #include <random>
 #include <array>
+#include <cstring>
 
 #include "load_save_png.hpp"
 
@@ -586,9 +587,10 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
         auto player = get_object(data.first);
 
         spotlight_z = 0.0f;
-        // float spot_light_pos_x =    data.second.player_facing ? player.position.x - 21.0f : player.position.x + 21.0f;     
+        // float spot_light_pos_x =    data.second.player_facing ? player.position.x - 21.0f : player.position.x + 21.0f;
         glm::vec3 spot_light_pos(player.position.x, player.position.y, spotlight_z);
-        glm::vec3 spot_light_energy(25000.0f, 25000.0f, 25000.0f);
+        // glm::vec3 spot_light_energy(2500.0f, 2500.0f, 2500.0f);
+        glm::vec3 spot_light_energy(250.0f, 250.0f, 250.0f);
 
         glm::vec3 spot_light_dir(data.second.player_facing ? 1.0f : -1.0f, 0.0f, 0.0f);
         spot_light_dir = glm::normalize(spot_light_dir);
@@ -628,7 +630,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
 
     GLsizei light_count = static_cast<GLsizei>(light_types.size());
 
-    if (light_count > BasicMaterialForwardProgram::MaxLights)
+    if (int(light_count) > int(BasicMaterialForwardProgram::MaxLights))
     {
         light_count = BasicMaterialForwardProgram::MaxLights;
     }

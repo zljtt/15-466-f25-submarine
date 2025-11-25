@@ -127,8 +127,8 @@ void Game::update(float elapsed)
                 }
                 assert(level.black_box_pos.size() > 0);
                 assert(level.black_box_pos.size() > 0);
-                std::uniform_int_distribution<int> randflag(0, level.black_box_pos.size() - 1);
-                std::uniform_int_distribution<int> randsubmit(0, level.submit_spawn_pos.size() - 1);
+                std::uniform_int_distribution<int> randflag(0, int(level.black_box_pos.size()) - 1);
+                std::uniform_int_distribution<int> randsubmit(0, int(level.submit_spawn_pos.size()) - 1);
                 // std::uniform_real_distribution<float> randx(std::min(FlagSpawnMin.x, FlagSpawnMax.x), std::max(FlagSpawnMin.x, FlagSpawnMax.x));
                 // std::uniform_real_distribution<float> randy(std::min(FlagSpawnMin.y, FlagSpawnMax.y), std::max(FlagSpawnMin.y, FlagSpawnMax.y));
                 flag->position = level.black_box_pos[randflag(mt)];

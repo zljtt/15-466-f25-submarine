@@ -180,7 +180,7 @@ struct Player : NetworkObject
         bool super_radar_exposure = true; // server
 
         // light
-        bool light_on = true;
+        bool light_on = false;
         bool player_facing = false; // false is left, true is right
 
         void send(Connection *connection) const;

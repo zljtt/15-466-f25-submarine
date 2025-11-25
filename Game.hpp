@@ -38,7 +38,7 @@ enum class SoundCues : uint8_t
 struct Game
 {
     static const int MaxPlayer = 2;
-    static const int MaxBlackBox = 1;
+    static const int MaxBlackBox = 3;
     std::mt19937 mt{0x15466666}; // used for spawning players
     std::uniform_int_distribution<uint32_t> dist{1u, 0xFFFFFFFFu};
 

@@ -84,6 +84,7 @@ void Player::update(float elapsed, Game *game)
         data.respawn_timer -= elapsed;
         if (data.respawn_timer <= 0)
         {
+            data.hp = 100;
             data.status = Play;
             break;
         }
@@ -314,6 +315,12 @@ void Player::take_damage(Game *game, float damage, GameObject *source)
     data.hp -= damage;
     // game->send_notification_message(this, "Submarine Damaged.");
 
+    Torpedo *other = dynamic_cast<Torpedo *>(source);
+    if (other)
+    {
+        game->send_notification_message(this, "You are damaged by a Torpedo!");
+    }
+
     if (data.hp < 0)
     {
         die(game, source);
@@ -325,10 +332,17 @@ void Player::die(Game *game, GameObject *source)
 {
     std::cout << "Player " << id << " die\n";
     // UI NOTIDY to killer : player killed
-    Player *other = dynamic_cast<Player *>(source);
-    if (other)
+    auto players = game->get_objects<Player>();
+    for (auto &player : players)
     {
-        game->send_notification_message(other, "Destroyed an submarine.");
+        if (player->id == this->id)
+        {
+            game->send_notification_message(player, "Your submarine is destroyed.");
+        }
+        else
+        {
+            game->send_notification_message(player, "Another submarine is destroyed.");
+        }
     }
     if (data.has_flag)
     {
@@ -337,8 +351,11 @@ void Player::die(Game *game, GameObject *source)
         auto flag = game->spawn_object<Flag>();
         flag->position = position;
         data.has_flag = false;
+        for (auto &player : players)
+        {
+            game->send_notification_message(player, "BlackBox dropped!");
+        }
     }
-    game->send_notification_message(this, "Your submarine is destroyed.");
     data.respawn_timer = 10.0f;
     data.status = RespawnSelect;
     position = data.spawn_pos;

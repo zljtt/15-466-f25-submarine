@@ -116,10 +116,10 @@ struct PlayMode : Mode
     void draw_overlay(glm::uvec2 const &drawable_size);
     glm::vec2 local_player_pos();
 
-    float water_surface_y = 500.0f;
-    float max_depth = 300.0f;
+    float water_surface_y = 570.0f;
+    float max_depth = 100.0f;
     glm::vec3 base_water_color = glm::vec3(0.0f, 0.06f, 0.12f);
-    //parameter: remaining energy percentage, depth
+    // parameter: remaining energy percentage, depth
     float k = -std::log(0.3f) / 100.0f;
     float spotlight_z = 0.0f;
     float cutoff = glm::radians(8.0f);

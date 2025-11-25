@@ -6,6 +6,7 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/rotate_vector.hpp>
+#include <cmath>
 // #include <algorithm>
 // #include <cfloat>
 // #include <cmath>
@@ -70,7 +71,7 @@ void Radar::render_results()
 
 void Radar::render_revealed_player()
 {
-    for (int i = 0; i < client_game->level_data.revealed_objects.size(); i++)
+    for (int i = 0; i < int(client_game->level_data.revealed_objects.size()); i++)
     {
 
         std::string key = "P_" + std::to_string(i);

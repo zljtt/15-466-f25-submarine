@@ -14,6 +14,8 @@
 
 Game::Game()
 {
+    level.black_box_pos.clear();
+    level.submit_spawn_pos.clear();
     auto on_drawable = [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name)
     {
         if (transform->name.rfind("BlackBox", 0) == 0)
@@ -25,7 +27,10 @@ Game::Game()
             level.submit_spawn_pos.push_back(glm::vec2(transform->position));
         }
     };
+
     Scene(data_path("prototype_marker.scene"), on_drawable);
+    std::cout << "flag count " << std::to_string(level.black_box_pos.size()) << "\n";
+    std::cout << "submit count " << std::to_string(level.submit_spawn_pos.size()) + "\n";
 }
 
 Game::~Game()
@@ -122,8 +127,8 @@ void Game::update(float elapsed)
                 }
                 assert(level.black_box_pos.size() > 0);
                 assert(level.black_box_pos.size() > 0);
-                std::uniform_int_distribution<int> randflag(0, level.black_box_pos.size());
-                std::uniform_int_distribution<int> randsubmit(0, level.submit_spawn_pos.size());
+                std::uniform_int_distribution<int> randflag(0, level.black_box_pos.size() - 1);
+                std::uniform_int_distribution<int> randsubmit(0, level.submit_spawn_pos.size() - 1);
                 // std::uniform_real_distribution<float> randx(std::min(FlagSpawnMin.x, FlagSpawnMax.x), std::max(FlagSpawnMin.x, FlagSpawnMax.x));
                 // std::uniform_real_distribution<float> randy(std::min(FlagSpawnMin.y, FlagSpawnMax.y), std::max(FlagSpawnMin.y, FlagSpawnMax.y));
                 flag->position = level.black_box_pos[randflag(mt)];

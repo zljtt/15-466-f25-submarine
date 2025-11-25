@@ -188,10 +188,10 @@ void NetworkObject::send(Connection *connection) const
     connection->send(scale);
     connection->send(deleted);
     connection->send(sound_cues);
-    if (sound_cues != 0)
-    {
-        std::cout << "actually sending sound cue" << static_cast<int>(sound_cues) << std::endl;
-    }
+    // if (sound_cues != 0)
+    // {
+    //     std::cout << "actually sending sound cue" << static_cast<int>(sound_cues) << std::endl;
+    // }
 };
 
 void NetworkObject::receive(uint32_t *at, std::vector<uint8_t> &recv_buffer)

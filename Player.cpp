@@ -372,9 +372,9 @@ void Player::select_ship(ShipType obj_type)
         data.torpedo_cooldown = TORPEDO_COOLDOWN;
         data.torpedo_speed = TORPEDO_SPEED;
 
-        data.normal_radar_interval = 1.3f;
+        data.normal_radar_interval = 1.0f;
         data.normal_radar_malfunction_change = 0.0f;
-        data.normal_radar_range = 20.0f;
+        data.normal_radar_range = 30.0f;
         data.normal_radar_info_duration = 2.8f;
         data.super_radar_cooldown = 5.0f;
         data.super_radar_info_duration = 5.0f;
@@ -382,21 +382,21 @@ void Player::select_ship(ShipType obj_type)
         break;
     case Explorer:
         data.collision_damage = 5.0f;
-        data.normal_radar_interval = 0.8f;
+        data.normal_radar_interval = 0.6f;
         data.normal_radar_malfunction_change = 0.4f;
         data.normal_radar_info_duration = 1.7f;
         break;
     case Fighter:
         data.hp = 120.0f;
         data.torpedo_speed = 20.0f;
-        data.normal_radar_interval = 1.4f;
+        data.normal_radar_interval = 1.0f;
         data.normal_radar_malfunction_change = 0.2f;
         break;
     case Quest:
         data.super_radar_info_duration = 10.0f;
         data.super_radar_exposure = false;
-        data.normal_radar_range = 13.0f;
-        data.normal_radar_interval = 1.3f;
+        data.normal_radar_range = 20.0f;
+        data.normal_radar_interval = 1.1f;
         break;
     default:
         break;

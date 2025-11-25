@@ -426,8 +426,8 @@ void PlayMode::update_sound(float elapsed)
     {
         if (netObj.sound_cues != 0)
         {
-            Scene::Transform *loc = network_drawables[local_player->id]->transform;
-            std::cout << network_drawables[local_player->id]->pipeline.count << " " << loc->position.x << " " << loc->position.y << " " << loc->position.z << loc->scale.x << std::endl;
+            // Scene::Transform *loc = network_drawables[local_player->id]->transform;
+            // std::cout << network_drawables[local_player->id]->pipeline.count << " " << loc->position.x << " " << loc->position.y << " " << loc->position.z << loc->scale.x << std::endl;
             execute_network_soundcues(netObj.type, netObj.sound_cues, glm::vec3(netObj.position, 0), netObj.id);
             // clear the sound_cues
             netObj.sound_cues = 0;

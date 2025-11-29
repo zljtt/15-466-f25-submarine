@@ -550,15 +550,19 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
     }
 
     // player point light
+    for(auto data : player_data)
     {
-        glm::vec3 point_light_pos(player_pos.x, player_pos.y + 1.8f, 2.5f);
-        glm::vec3 point_light_energy(15.0f, 15.0f, 20.0f);
+        auto player = get_object(data.first);
+        glm::vec3 point_light_pos(player.position.x, player.position.y + 1.8f, 2.5f);
+        //determine the energy of the point light based on distance to local player
+        float distance_diminish = std::min(1.0f, 1.0f/glm::length(player.position - local_player->position));
+        glm::vec3 point_light_energy(20.0f, 20.0f, 30.0f);
         // glm::vec3 point_light_energy(0.0f, 0.0f, 0.0f);
 
         light_types.push_back(0); // point
         light_poss.push_back(point_light_pos);
         light_dirs.push_back(glm::vec3(0.0f));
-        light_energies.push_back(point_light_energy);
+        light_energies.push_back(point_light_energy * distance_diminish);
         light_cutoffs.push_back(0.0f);
 
         // glEnable(GL_BLEND);
@@ -627,6 +631,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
         // scene.draw(*camera);
     }
     // glDisable(GL_BLEND);
+
 
     GLsizei light_count = static_cast<GLsizei>(light_types.size());
 

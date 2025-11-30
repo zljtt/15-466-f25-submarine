@@ -551,6 +551,25 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
         // scene.draw(*camera);
     }
 
+    //torpedo light
+    for(auto torp: network_objects){
+        if(torp.type != ObjectType::Torpedo){
+            continue;
+        }
+        glm::vec3 point_light_pos(torp.position.x, torp.position.y, 2.5f);
+        //determine the energy of the point light based on distance to local player
+        float distance_diminish = std::min(1.0f, 3.0f/glm::length(torp.position - local_player->position));
+        glm::vec3 point_light_energy(10.0f, 5.0f, 5.0f);
+        // glm::vec3 point_light_energy(0.0f, 0.0f, 0.0f);
+
+        light_types.push_back(0); // point
+        light_poss.push_back(point_light_pos);
+        light_dirs.push_back(glm::vec3(0.0f));
+        light_energies.push_back(point_light_energy * distance_diminish);
+        light_cutoffs.push_back(0.0f);
+
+    }
+
     // player point light
     for(auto data : player_data)
     {

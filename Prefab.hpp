@@ -25,7 +25,6 @@ extern Load<MeshBuffer> prototype_prefab_meshes;
 
 extern Load<Prefab> prefab_player;
 extern Load<Prefab> prefab_propeller;
-extern Load<Prefab> prefab_torpedo_head;
 extern Load<Prefab> prefab_torpedo;
 extern Load<Prefab> prefab_flag;
 extern Load<Prefab> prefab_ammo;
@@ -53,9 +52,6 @@ static inline Scene::Drawable *create_drawable_at(Scene &scene, ObjectType type,
     case ObjectType::Torpedo:
     {
         Scene::Drawable * torpedo_drawable = prefab_torpedo->create_drawable(scene, pos, scale, glm::quat(0, 0, 0, 1));
-        Scene::Drawable * torpedo_head_drawable = prefab_torpedo_head->create_drawable(scene, pos, scale, glm::quat(0, 0, 0, 1));
-        torpedo_head_drawable->transform->parent = torpedo_drawable->transform;
-        torpedo_drawable->transform->child = torpedo_head_drawable->transform;
         return torpedo_drawable;
     }
     case ObjectType::Flag:

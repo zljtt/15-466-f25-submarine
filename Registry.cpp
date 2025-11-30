@@ -156,3 +156,15 @@ Load<Sound::Sample> Submarine_Scan3(LoadTagEarly, []() -> Sound::Sample const *
                                     { return new Sound::Sample(data_path("resource/sound/sub_scan3.wav")); });
 Load<Sound::Sample> Submarine_Scan_Enemy(LoadTagEarly, []() -> Sound::Sample const *
                                          { return new Sound::Sample(data_path("resource/sound/sub_scan_enemy.wav")); });
+Load<Sound::Sample> Submarine_Launch_Torpedo(LoadTagEarly, []() -> Sound::Sample const *
+                                         { return new Sound::Sample(data_path("resource/sound/launch_torpedo.wav")); });
+Load<Sound::Sample> Submarine_Superscan(LoadTagEarly, []() -> Sound::Sample const *
+                                         { return new Sound::Sample(data_path("resource/sound/superscan.wav")); });
+Load<Sound::Sample> Torpedo_Hit(LoadTagEarly, []() -> Sound::Sample const *
+                                         { return new Sound::Sample(data_path("resource/sound/torpedo_hit.wav")); });               
+Load<Sound::Sample> Submarine_Submit(LoadTagEarly, []() -> Sound::Sample const *
+                                         { return new Sound::Sample(data_path("resource/sound/delivered.wav")); });
+Load<Sound::Sample> Shallow_BGM(LoadTagEarly, []() -> Sound::Sample const *
+                                         { return new Sound::Sample(data_path("resource/sound/shallow_bgm.wav")); });       
+Load<Sound::Sample> Deep_BGM(LoadTagEarly, []() -> Sound::Sample const *
+                                         { return new Sound::Sample(data_path("resource/sound/deep_bgm.wav")); });                                                                                                                                                                                          

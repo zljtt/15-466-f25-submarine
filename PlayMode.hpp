@@ -64,10 +64,11 @@ struct PlayMode : Mode
     std::unordered_map<uint32_t, std::shared_ptr<Sound::PlayingSample>> sub_start;
     std::unordered_map<uint32_t, std::shared_ptr<Sound::PlayingSample>> sub_stop;
 
-    std::shared_ptr<Sound::PlayingSample> flag_spawned;
+    std::shared_ptr<Sound::PlayingSample> submitted;
     std::shared_ptr<Sound::PlayingSample> sub_hit;
     std::shared_ptr<Sound::PlayingSample> rad_scan;
     std::shared_ptr<Sound::PlayingSample> rad_detect_enemy;
+    
 
     // helper for
     bool toPlay(uint8_t sc1, SoundCues sc2)

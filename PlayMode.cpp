@@ -370,6 +370,8 @@ void PlayMode::update_radar(float elapsed)
     if (controls.radar.downs && local_player_data().status == Player::Play && radar.special_radar_timer <= 0)
     {
         radar.scan_special(local_player, 999);
+        std::cout<<"playing superscan"<<std::endl;
+        Sound::play(*Submarine_Superscan,0.5f,0.0f);
     }
     radar.update(elapsed);
 }

@@ -1,6 +1,7 @@
 #include "Radar.hpp"
 #include "PlayMode.hpp"
 #include "BBox.hpp"
+#include "Sound.hpp"
 #include "UIRenderer.hpp"
 #include "Registry.hpp"
 
@@ -112,6 +113,7 @@ void Radar::update(float elapse)
     {
         radar_timer = client_game->local_player_data().normal_radar_interval;
         scan(client_game->local_player, client_game->local_player_data().normal_radar_range, Radar::RADAR_RAY_COUNT);
+
     }
 
     // update radar data
@@ -159,6 +161,8 @@ void Radar::scan(GameObject const *origin, float range, int count)
     path.speed = RADAR_SPEED;
     path.max_distance = client_game->local_player_data().normal_radar_range;
 
+    Sound::play(*Submarine_Scan1,0.1f,0.0f);
+    bool moving = false;
     for (int i = 0; i < count; ++i)
     {
         RadarPoint radar_point;
@@ -167,6 +171,7 @@ void Radar::scan(GameObject const *origin, float range, int count)
         glm::vec2 dir = {std::cos(angle), std::sin(angle)};
         Trace hit = raycast_direction(origin->position, dir, range);
         glm::vec4 green(0.0f, 1.0f, 0.0f, 1.0f);
+        
         if (hit.hit)
         {
             // distance
@@ -189,18 +194,25 @@ void Radar::scan(GameObject const *origin, float range, int count)
                 glm::vec4 red(1.0f, 0.0f, 0.0f, 1.0f);
                 float t = std::clamp(velocity / 8.0f, 0.0f, 1.0f);
                 radar_point.color = glm::mix(green, red, t);
-            }
-        }
+                moving = true;
+            }   
+        }      
         else
         {
             radar_point.bound = INFINITY;
             radar_point.color = green;
         }
+
+
         radar_point.duration = client_game->local_player_data().normal_radar_info_duration;
         radar_point.tex = tex_radar_blurred->tex;
         radar_point.direction = dir;
         radar_point.touched = false;
         path.points.push_back(radar_point);
+    }
+    if(moving){
+            std::cout<<"playing red scan"<<std::endl;
+            Sound::play(*Submarine_Scan_Enemy,0.3f,0.0f);
     }
     paths.push_back(path);
 };

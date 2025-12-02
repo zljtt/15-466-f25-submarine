@@ -45,6 +45,15 @@ extern Load<Sound::Sample> Submarine_Scan_Enemy;
 extern Load<Sound::Sample> Submarine_Launch_Torpedo;
 extern Load<Sound::Sample> Submarine_Superscan;
 extern Load<Sound::Sample> Submarine_Submit;
+extern Load<Sound::Sample> Torpedo_Hit;
+
 extern Load<Sound::Sample> Shallow_BGM;
 extern Load<Sound::Sample> Deep_BGM;
-extern Load<Sound::Sample> Torpedo_Hit;
+extern Load<Sound::Sample> Drums;
+extern Load<Sound::Sample> Shallow_Melody1;
+extern Load<Sound::Sample> Shallow_Melody2;
+extern Load<Sound::Sample> Shallow_Melody3;
+extern Load<Sound::Sample> Deep_Melody1;
+extern Load<Sound::Sample> Deep_Melody2;
+extern Load<Sound::Sample> Deep_Melody3;
+

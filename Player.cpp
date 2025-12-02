@@ -203,6 +203,7 @@ void Player::update_movement(float elapsed, Game *game)
             data.has_flag = true;
             flag->deleted = true;
             // UI NOTIFY : flag captured by player
+            add_sound_cue(static_cast<uint8_t>(SoundCues::Capture));
         }
         // if hit obstacle
         auto obstacle = get_colliders(hits, ObjectType::Obstacle);
@@ -227,6 +228,7 @@ void Player::update_weapon(float elapsed, Game *game)
         torp->velocity = glm::vec2(data.player_facing ? 1 : -1, 0) * data.torpedo_speed;
         torp->owner = id;
         data.torpedo_timer = 0.0f;
+        torp->add_sound_cue(static_cast<uint8_t>(SoundCues::JustSpawned));
     }
     else
     {

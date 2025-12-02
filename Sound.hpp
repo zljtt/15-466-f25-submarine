@@ -71,6 +71,8 @@ struct PlayingSample {
 	bool loop = false; //should playback loop after data runs out?
 	bool stopping = false; //is playing stopping?
 	bool stopped = false; //was playback stopped (either by running out of sample, or by stop())?
+	std::atomic<bool> looped = false; //used for callback
+
 
 	Ramp< float > volume = Ramp< float >(1.0f);
 

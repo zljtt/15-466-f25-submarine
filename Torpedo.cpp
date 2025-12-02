@@ -4,6 +4,7 @@
 #include "PlayMode.hpp"
 #include "Scene.hpp"
 
+
 #include <stdexcept>
 #include <iostream>
 #include <cstring>
@@ -115,6 +116,7 @@ void Torpedo::update(float elapsed, Game *game)
     {
         // PLAY SOUND : torpeto hit
         player_hit->take_damage(game, TORPEDO_DAMAGE, this);
+        player_hit->add_sound_cue(static_cast<uint8_t>(SoundCues::Hit_TORP));
     }
     if (hits.size() > 0)
     {

@@ -161,7 +161,7 @@ void Radar::scan(GameObject const *origin, float range, int count)
     path.speed = RADAR_SPEED;
     path.max_distance = client_game->local_player_data().normal_radar_range;
 
-    Sound::play(*Submarine_Scan1,0.1f,0.0f);
+    Sound::play(*Submarine_Scan1,0.2f,0.0f);
     bool moving = false;
     for (int i = 0; i < count; ++i)
     {
@@ -211,8 +211,7 @@ void Radar::scan(GameObject const *origin, float range, int count)
         path.points.push_back(radar_point);
     }
     if(moving){
-            std::cout<<"playing red scan"<<std::endl;
-            Sound::play(*Submarine_Scan_Enemy,0.3f,0.0f);
+            Sound::play(*Submarine_Scan_Enemy,0.5f,0.0f);
     }
     paths.push_back(path);
 };

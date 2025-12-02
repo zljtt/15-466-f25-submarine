@@ -68,6 +68,13 @@ struct PlayMode : Mode
     std::shared_ptr<Sound::PlayingSample> sub_hit;
     std::shared_ptr<Sound::PlayingSample> rad_scan;
     std::shared_ptr<Sound::PlayingSample> rad_detect_enemy;
+    std::shared_ptr<Sound::PlayingSample> BGM_Shallow;
+    std::shared_ptr<Sound::PlayingSample> BGM_Deep;
+    std::shared_ptr<Sound::PlayingSample> BGM_Urgent;//drums symbolize urgency
+
+
+
+
     
 
     // helper for
@@ -119,6 +126,7 @@ struct PlayMode : Mode
 
     float water_surface_y = 570.0f;
     float max_depth = 100.0f;
+    float depth_transition = 20.0f;//transition state between light and dark
     glm::vec3 base_water_color = glm::vec3(0.0f, 0.06f, 0.12f);
     // parameter: remaining energy percentage, depth
     float k = -std::log(0.3f) / 100.0f;

@@ -402,10 +402,12 @@ void SDLCALL mix_audio(void *, SDL_AudioStream *stream_, int additional_amount, 
 			if (playing_sample.i == playing_sample.data.size()) {
 				if (playing_sample.loop) {
 					playing_sample.i = 0;
+					playing_sample.looped.store(true, std::memory_order_release);
 				} else {
 					break;
 				}
 			}
+			
 
 			//update pan values:
 			pan.l += pan_step.l;

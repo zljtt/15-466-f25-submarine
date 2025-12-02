@@ -26,10 +26,13 @@
 
 #include "load_save_png.hpp"
 
+
+std::mt19937 rng(std::random_device{}());
+
 const std::string PlayMode::HP = "HP";
 
 PlayMode::PlayMode(Client &client_) : scene(*prototype_scene), radar(this), client(client_)
-{
+{   
     // get pointer to camera for convenience:
     if (scene.cameras.size() != 1)
         throw std::runtime_error("Expecting scene to have exactly one camera, but it has " + std::to_string(scene.cameras.size()));
@@ -64,6 +67,11 @@ PlayMode::PlayMode(Client &client_) : scene(*prototype_scene), radar(this), clie
     text_overlays.emplace_back(renderer_notification.value); // NOTIFICATION
     text_overlays.emplace_back(renderer_large.value);        // NOTIFICATION
 
+
+    //Background Music
+    BGM_Shallow = Sound::loop(*Shallow_BGM,0.1f);
+    BGM_Deep = Sound::loop(*Deep_BGM,0.0f);
+    BGM_Urgent = Sound::loop(*Drums,0.0f);
     // text_overlays[RADAR].update_image("test", *tex_radar_result, glm::vec2(100, 100), glm::vec2(100, 100));
 }
 
@@ -269,16 +277,18 @@ void PlayMode::execute_network_soundcues(ObjectType type, uint8_t sc, glm::vec3 
 {
     if (type == ObjectType::Player)
     {
+        float atten = std::min(1.5f, 3.0f/glm::length(glm::vec2(pos.x,pos.y)- local_player->position));
 
         if (toPlay(sc, SoundCues::Start))
         {
             // std::cout << "start engine" << id << std::endl;
             if (sub_moving.find(id) == sub_moving.end())
-                sub_moving[id] = Sound::loop_3D(*Submarine_Moving, 0.0f, pos - glm::vec3(local_player->position, 0), 8.0f);
-            sub_moving[id]->set_volume(0.1f, 1.0f);
+                sub_moving[id] = Sound::loop_3D(*Submarine_Moving, 0.0f, pos , 0.2f);
+            sub_moving[id]->set_volume(atten*66.0f, 1.0f);
+            
             if (!sub_stop[id] || sub_stop[id]->stopped)
             {
-                sub_start[id] = Sound::play_3D(*Submarine_Start, 2.5f, pos - glm::vec3(local_player->position, 0), 8.0f);
+                sub_start[id] = Sound::play_3D(*Submarine_Start, atten*16.0f, pos ,1.0f);
             }
         }
         if (toPlay(sc, SoundCues::Stop))
@@ -286,10 +296,14 @@ void PlayMode::execute_network_soundcues(ObjectType type, uint8_t sc, glm::vec3 
             // std::cout << "stop engine" << id << std::endl;
             if (!sub_stop[id] || sub_stop[id]->stopped)
             {
-                sub_stop[id] = Sound::play_3D(*Submarine_Stop, 2.5f, pos - glm::vec3(local_player->position, 0), 8.0f);
+                sub_stop[id] = Sound::play_3D(*Submarine_Stop, atten*16.0f, pos ,1.0f);
             }
 
             sub_moving[id]->set_volume(0.0f, 1.0f);
+        }
+        if(toPlay(sc,SoundCues::Hit_TORP)){
+            //std::cout<<"torpedo_Hit"<<std::endl;
+            if(id != local_player->id)Sound::play_3D(*Torpedo_Hit, 45.0f, pos, 0.5f);
         }
         if (toPlay(sc, SoundCues::Hit))
         {
@@ -297,11 +311,29 @@ void PlayMode::execute_network_soundcues(ObjectType type, uint8_t sc, glm::vec3 
             {
                 return;
             }
-            sub_hit = Sound::play_3D(*Submarine_Hit, 5.0f, pos - glm::vec3(local_player->position, 0), 8.0f);
+            if(id == local_player->id)
+            sub_hit = Sound::play(*Submarine_Hit, 0.6f);
         }
+        
         if (toPlay(sc, SoundCues::GetPoint))
         {
+            Sound::play_3D(*Submarine_Submit,3.0f,pos,10.0f);
+            //stop drms
+            BGM_Urgent->set_volume(0.0f);
         }
+        if(toPlay(sc,SoundCues::Capture)){
+            std::cout<<"DRUMS "<<sc<<std::endl;
+            BGM_Urgent->set_volume(0.8f,4.0f);
+        }
+    }
+    else if(type == ObjectType::Torpedo){
+        //std::cout<<"getting "<<sc<<std::endl;
+        if(toPlay(sc,SoundCues::JustSpawned)){
+            Sound::play_3D(*Submarine_Launch_Torpedo, 45.0f, pos, 0.5f);
+        }
+    }
+    else if(type == ObjectType::Flag){
+        
     }
 }
 
@@ -422,16 +454,40 @@ void PlayMode::update_animation(float elapsed)
 
 void PlayMode::update_sound(float elapsed)
 {
+    //update background music
+
+    //blend deep and shallow based on depth
+    glm::vec2 player_pos = local_player_pos();
+    float depth = glm::max(0.0f, water_surface_y - player_pos.y);
+    float complete_fade_factor = 1.0f - glm::smoothstep(max_depth, max_depth + depth_transition, depth);
+    BGM_Shallow->set_volume(0.2f*complete_fade_factor);
+    BGM_Deep->set_volume(0.2f*(1.0f - complete_fade_factor));
+    //play sparse melodies
+    std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+    float r = dist(rng); 
+    if (BGM_Shallow->looped.exchange(false, std::memory_order_acquire)) {
+        if(r<0.2f && r>0.13){
+            (complete_fade_factor > 0.5f) ? Sound::play(*Shallow_Melody1,0.5f) : Sound::play(*Deep_Melody1,0.5f);
+        }
+        if(r<0.13f && r>0.06){
+            (complete_fade_factor > 0.5f) ? Sound::play(*Shallow_Melody2,0.5f) : Sound::play(*Deep_Melody2,0.5f);
+        }
+        if(r<0.06f){
+            (complete_fade_factor > 0.5f) ? Sound::play(*Shallow_Melody3,0.5f) : Sound::play(*Deep_Melody3,0.5f);
+        }
+    }
+
     // go through all the network objects to see which has a sound to play
-    Sound::listener.set_position_right(glm::vec3(local_player->position, 0), glm::vec3(1, 0, 0), 1.0f / 60.0f);
+    Sound::listener.set_position_right(camera->transform->position, glm::vec3(1, 0, 0), 1.0f / 60.0f);
 
     for (auto &netObj : network_objects)
     {
         if (netObj.sound_cues != 0)
         {
+
             // Scene::Transform *loc = network_drawables[local_player->id]->transform;
-            // std::cout << network_drawables[local_player->id]->pipeline.count << " " << loc->position.x << " " << loc->position.y << " " << loc->position.z << loc->scale.x << std::endl;
-            execute_network_soundcues(netObj.type, netObj.sound_cues, glm::vec3(netObj.position, 0), netObj.id);
+            //std::cout << network_drawables[local_player->id]->pipeline.count << " " << loc->position.x << " " << loc->position.y << " " << loc->position.z << loc->scale.x << std::endl;
+            execute_network_soundcues(netObj.type, netObj.sound_cues, glm::vec3(netObj.position, 1.5f), netObj.id);
             // clear the sound_cues
             netObj.sound_cues = 0;
         }
@@ -449,6 +505,7 @@ void PlayMode::update_sound(float elapsed)
         {
             glm::vec3 pos = network_drawables[id]->transform->position;
             it->second->set_position(pos);
+
             // std::cout<<"here"<<std::endl;
             it++;
         }
@@ -489,7 +546,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
     // float atten = (1.0f - t) * (1.0f - t);
     // float atten = pow((1.0f - t), 3);
     float atten = std::exp(-k * depth);
-    float complete_fade_factor = 1.0f - glm::smoothstep(max_depth, max_depth + 20.0f, depth);
+    float complete_fade_factor = 1.0f - glm::smoothstep(max_depth, max_depth + depth_transition, depth);
     atten *= complete_fade_factor;
     glm::vec3 water_color = base_water_color * atten;
 

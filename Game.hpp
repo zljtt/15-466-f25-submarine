@@ -32,7 +32,9 @@ enum class SoundCues : uint8_t
     Stop = 1 << 1,
     Hit = 1 << 2,
     JustSpawned = 1 << 3,
-    GetPoint = 1 << 4
+    GetPoint = 1 << 4,
+    Hit_TORP = 1 << 5,
+    Capture = 1 << 6
 };
 
 struct Game

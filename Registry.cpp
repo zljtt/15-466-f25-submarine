@@ -150,10 +150,7 @@ Load<Sound::Sample> Submarine_Hit(LoadTagEarly, []() -> Sound::Sample const *
                                   { return new Sound::Sample(data_path("resource/sound/sub_hit.wav")); });
 Load<Sound::Sample> Submarine_Scan1(LoadTagEarly, []() -> Sound::Sample const *
                                     { return new Sound::Sample(data_path("resource/sound/sub_scan1.wav")); });
-Load<Sound::Sample> Submarine_Scan2(LoadTagEarly, []() -> Sound::Sample const *
-                                    { return new Sound::Sample(data_path("resource/sound/sub_scan2.wav")); });
-Load<Sound::Sample> Submarine_Scan3(LoadTagEarly, []() -> Sound::Sample const *
-                                    { return new Sound::Sample(data_path("resource/sound/sub_scan3.wav")); });
+
 Load<Sound::Sample> Submarine_Scan_Enemy(LoadTagEarly, []() -> Sound::Sample const *
                                          { return new Sound::Sample(data_path("resource/sound/sub_scan_enemy.wav")); });
 Load<Sound::Sample> Submarine_Launch_Torpedo(LoadTagEarly, []() -> Sound::Sample const *
@@ -167,4 +164,18 @@ Load<Sound::Sample> Submarine_Submit(LoadTagEarly, []() -> Sound::Sample const *
 Load<Sound::Sample> Shallow_BGM(LoadTagEarly, []() -> Sound::Sample const *
                                          { return new Sound::Sample(data_path("resource/sound/shallow_bgm.wav")); });       
 Load<Sound::Sample> Deep_BGM(LoadTagEarly, []() -> Sound::Sample const *
-                                         { return new Sound::Sample(data_path("resource/sound/deep_bgm.wav")); });                                                                                                                                                                                          
+                                         { return new Sound::Sample(data_path("resource/sound/deep_bgm.wav")); });
+Load<Sound::Sample> Deep_Melody1(LoadTagEarly, []() -> Sound::Sample const *
+                                         { return new Sound::Sample(data_path("resource/sound/deep_melody1.wav")); });
+Load<Sound::Sample> Deep_Melody2(LoadTagEarly, []() -> Sound::Sample const *
+                                         { return new Sound::Sample(data_path("resource/sound/deep_melody2.wav")); });       
+Load<Sound::Sample> Deep_Melody3(LoadTagEarly, []() -> Sound::Sample const *
+                                         { return new Sound::Sample(data_path("resource/sound/deep_melody3.wav")); });                                   
+Load<Sound::Sample> Shallow_Melody1(LoadTagEarly, []() -> Sound::Sample const *
+                                         { return new Sound::Sample(data_path("resource/sound/shallow_melody1.wav")); });       
+Load<Sound::Sample> Shallow_Melody2(LoadTagEarly, []() -> Sound::Sample const *
+                                         { return new Sound::Sample(data_path("resource/sound/shallow_melody2.wav")); });       
+Load<Sound::Sample> Shallow_Melody3(LoadTagEarly, []() -> Sound::Sample const *
+                                         { return new Sound::Sample(data_path("resource/sound/shallow_melody3.wav")); });       
+Load<Sound::Sample> Drums(LoadTagEarly, []() -> Sound::Sample const *
+                                         { return new Sound::Sample(data_path("resource/sound/drums.wav")); });                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                

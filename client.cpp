@@ -1,5 +1,6 @@
 #include "PlayMode.hpp"
 #include "MenuMode.hpp"
+#include "GP25IntroMode.hpp"
 
 #include "Connection.hpp"
 #include "Mode.hpp"
@@ -126,8 +127,9 @@ int main(int argc, char **argv)
 
         //------------ create game mode + make current --------------
         // Mode::set_current(std::make_shared<PlayMode>(client));
-        Mode::set_current(std::make_shared<MenuMode>());
-
+        // Mode::set_current(std::make_shared<MenuMode>());
+        Mode::set_current(std::make_shared<GP25IntroMode>([]()
+                                                          { Mode::set_current(std::make_shared<MenuMode>()); }));
         //------------ main loop ------------
 
         // this inline function will be called whenever the window is resized,

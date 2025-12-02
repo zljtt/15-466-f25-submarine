@@ -17,6 +17,26 @@ MenuMode::MenuMode()
     text_overlays[0].update_text("textfield_port", "port: __________", glm::vec2(-120, 240), UIOverlay::Bottom);
     text_overlays[0].update_text("textfield_name", "your name: __________", glm::vec2(-120, 180), UIOverlay::Bottom);
 
+    text_overlays[0].update_text("key0", "[Keybind]", glm::vec2(10, -20), UIOverlay::TopLeft, false);
+    text_overlays[0].update_text("key1", "Move: WASD", glm::vec2(10, -40), UIOverlay::TopLeft, false);
+    text_overlays[0].update_text("key2", "Toggle Flashlight: L", glm::vec2(10, -60), UIOverlay::TopLeft, false);
+    text_overlays[0].update_text("key3", "Super Scan: R", glm::vec2(10, -80), UIOverlay::TopLeft, false);
+    text_overlays[0].update_text("key4", "Launch Torpedo: Space", glm::vec2(10, -100), UIOverlay::TopLeft, false);
+
+    text_overlays[0].update_text("hint0", "[Icons] (Position of the Object)", glm::vec2(10, -150), UIOverlay::TopLeft, false);
+    text_overlays[0].update_image("hint1", tex_radar_flag->tex, glm::vec2(50, 50), glm::vec2(10, -200), UIOverlay::TopLeft);
+    text_overlays[0].update_text("hint1", "Black Box", glm::vec2(60, -180), UIOverlay::TopLeft, false);
+    text_overlays[0].update_image("hint2", tex_radar_submit_point->tex, glm::vec2(50, 50), glm::vec2(10, -250), UIOverlay::TopLeft);
+    text_overlays[0].update_text("hint2", "Black Box Submit Point", glm::vec2(60, -230), UIOverlay::TopLeft, false);
+    text_overlays[0].update_image("hint3", tex_radar_submarine->tex, glm::vec2(50, 50), glm::vec2(10, -300), UIOverlay::TopLeft);
+    text_overlays[0].update_text("hint3", "Other submarine", glm::vec2(60, -280), UIOverlay::TopLeft, false);
+    text_overlays[0].update_image("hint4", tex_radar_radar->tex, glm::vec2(50, 50), glm::vec2(10, -350), UIOverlay::TopLeft);
+    text_overlays[0].update_text("hint4", "Submarine using Super Scan", glm::vec2(60, -330), UIOverlay::TopLeft, false);
+
+    text_overlays[0].update_text("objective0", "[Objective]", glm::vec2(10, -380), UIOverlay::TopLeft, false);
+    text_overlays[0].update_text("objective1", "Find the Black Box,", glm::vec2(10, -400), UIOverlay::TopLeft, false);
+    text_overlays[0].update_text("objective2", "Carry it to the Submit Point.", glm::vec2(10, -420), UIOverlay::TopLeft, true);
+
     SDL_StartTextInput(Mode::window);
 }
 

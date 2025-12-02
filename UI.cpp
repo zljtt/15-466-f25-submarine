@@ -52,13 +52,13 @@ void PlayMode::update_ui(float elapsed)
         text_overlays[GUI].update_text("ship3_explain", "Strong and undetectable super scan, but weaker radar.", glm::vec2(-150, 200), UIOverlay::Bottom, false);
         text_overlays[GUI].update_text("prompt", "Select Ship using key [1,2,3]", glm::vec2(-100, 100), UIOverlay::Bottom, false);
 
-        text_overlays[GUI].update_text("key0", "<Keybind>", glm::vec2(10, -20), UIOverlay::TopLeft, false);
+        text_overlays[GUI].update_text("key0", "[Keybind]", glm::vec2(10, -20), UIOverlay::TopLeft, false);
         text_overlays[GUI].update_text("key1", "Move: WASD", glm::vec2(10, -40), UIOverlay::TopLeft, false);
         text_overlays[GUI].update_text("key2", "Toggle Flashlight: L", glm::vec2(10, -60), UIOverlay::TopLeft, false);
         text_overlays[GUI].update_text("key3", "Super Scan: R", glm::vec2(10, -80), UIOverlay::TopLeft, false);
         text_overlays[GUI].update_text("key4", "Launch Torpedo: Space", glm::vec2(10, -100), UIOverlay::TopLeft, false);
 
-        text_overlays[GUI].update_text("hint0", "<Icons> (Position of the Object)", glm::vec2(10, -150), UIOverlay::TopLeft, false);
+        text_overlays[GUI].update_text("hint0", "[Icons] (Position of the Object)", glm::vec2(10, -150), UIOverlay::TopLeft, false);
         text_overlays[GUI].update_image("hint1", tex_radar_flag->tex, glm::vec2(50, 50), glm::vec2(10, -200), UIOverlay::TopLeft);
         text_overlays[GUI].update_text("hint1", "Black Box", glm::vec2(60, -180), UIOverlay::TopLeft, false);
         text_overlays[GUI].update_image("hint2", tex_radar_submit_point->tex, glm::vec2(50, 50), glm::vec2(10, -250), UIOverlay::TopLeft);
@@ -123,7 +123,15 @@ void PlayMode::update_ui(float elapsed)
         if (local_player_data().submitting)
         {
             int progress = int((local_player_data().submit_progression / 10.0f) * 100.0f);
-            text_overlays[LARGE_TEXT].update_text("submitting", "Submitting Objective - " + std::to_string(progress) + "%", glm::vec2(-120, -100), UIOverlay::Top);
+            text_overlays[LARGE_TEXT].update_text("submitting", "Submitting BlackBox - " + std::to_string(progress) + "%", glm::vec2(-160, -200), UIOverlay::Top);
+        }
+        else if (local_player_data().has_flag)
+        {
+            text_overlays[LARGE_TEXT].update_text("submitting", "Carry BlackBox to Submit Point!", glm::vec2(-200, -50), UIOverlay::Top);
+        }
+        else
+        {
+            text_overlays[LARGE_TEXT].update_text("submitting", "Find BlackBox", glm::vec2(-75, -50), UIOverlay::Top);
         }
 
         // Player flag text

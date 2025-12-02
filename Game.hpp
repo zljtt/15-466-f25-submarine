@@ -23,6 +23,7 @@ enum class Message : uint8_t
     C2S_Controls = 1, // Greg!
     S2C_State = 's',
     S2C_Notification = 'n',
+    C2S_Data = 'd',
     //...
 };
 
@@ -127,4 +128,6 @@ struct Game
     void send_state_message(Connection *connection, Player *connection_player = nullptr) const;
 
     void send_notification_message(Player *connection_player, std::string notification) const;
+
+    bool recv_data_message(Connection *connection, Player *connection_player);
 };

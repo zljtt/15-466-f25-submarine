@@ -240,3 +240,43 @@ void Game::send_state_message(Connection *connection_, Player *connection_player
     connection.send_buffer[mark - 2] = uint8_t(size >> 8);
     connection.send_buffer[mark - 1] = uint8_t(size >> 16);
 }
+
+bool Game::recv_data_message(Connection *connection_, Player *connection_player)
+{
+    assert(connection_);
+    auto &connection = *connection_;
+    auto &recv_buffer = connection.recv_buffer;
+    if (recv_buffer.size() < 4)
+        return false;
+    if (recv_buffer[0] != uint8_t(Message::C2S_Data))
+        return false;
+    uint32_t size = (uint32_t(recv_buffer[3]) << 16) | (uint32_t(recv_buffer[2]) << 8) | uint32_t(recv_buffer[1]);
+    uint32_t at = 0;
+
+    // expecting complete message:
+    if (recv_buffer.size() < 4 + size)
+        return false;
+
+    auto read_string = [&]()
+    {
+        uint32_t len;
+        std::memcpy(&len, &recv_buffer[4 + at], sizeof(uint32_t));
+        at += sizeof(uint32_t);
+
+        if (4 + at + len > recv_buffer.size())
+        {
+            throw std::runtime_error("Ran out of bytes reading data.");
+        }
+
+        std::string s((char *)&recv_buffer[4 + at], len);
+        at += len;
+        return s;
+    };
+
+    connection_player->data.pname = read_string();
+    std::cout << "name: " << connection_player->data.pname << "\n";
+    // delete message from buffer:
+    recv_buffer.erase(recv_buffer.begin(), recv_buffer.begin() + 4 + size);
+
+    return true;
+}

@@ -153,6 +153,7 @@ const client_names = [
     maek.CPP('client.cpp'),
     maek.CPP('Prefab.cpp'),
     maek.CPP('PlayMode.cpp'),
+    maek.CPP('MenuMode.cpp'),
     maek.CPP('LitColorTextureProgram.cpp'),
     maek.CPP('BasicMaterialForwardProgram.cpp'),
     maek.CPP('ColorTextureProgram.cpp'),  //not used right now, but you might want it

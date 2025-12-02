@@ -17,6 +17,7 @@
 #include <glm/glm.hpp>
 
 #include <vector>
+#include <string>
 #include <deque>
 #include <array>
 
@@ -33,7 +34,7 @@ struct PlayMode : Mode
 
     static const int Flag = 1;
 
-    PlayMode(Client &client);
+    PlayMode(std::string const &host, std::string const &port, std::string const &name);
     virtual ~PlayMode();
 
     // functions called by main loop:
@@ -56,7 +57,7 @@ struct PlayMode : Mode
     Scene::Camera *camera = nullptr;
     std::unordered_map<uint32_t, Scene::Drawable *> network_drawables;
     Scene scene;
-
+    std::string local_name;
     // sounds
 
     // sounds that need multiple instances need to be stored in unordered maps mapping player id to sound instance
@@ -70,12 +71,7 @@ struct PlayMode : Mode
     std::shared_ptr<Sound::PlayingSample> rad_detect_enemy;
     std::shared_ptr<Sound::PlayingSample> BGM_Shallow;
     std::shared_ptr<Sound::PlayingSample> BGM_Deep;
-    std::shared_ptr<Sound::PlayingSample> BGM_Urgent;//drums symbolize urgency
-
-
-
-
-    
+    std::shared_ptr<Sound::PlayingSample> BGM_Urgent; // drums symbolize urgency
 
     // helper for
     bool toPlay(uint8_t sc1, SoundCues sc2)
@@ -86,7 +82,7 @@ struct PlayMode : Mode
     // client side function to play sound based on sound_cues
     void execute_network_soundcues(ObjectType type, uint8_t sc, glm::vec3 pos, uint32_t id);
 
-    NetworkObject *local_player;
+    NetworkObject *local_player = nullptr;
     // std::list<GameObject> local_obstacles;
     BVH bvh;
 
@@ -118,7 +114,7 @@ struct PlayMode : Mode
     std::string server_message;
 
     // connection to server:
-    Client &client;
+    Client client;
 
     // helper functions
     void draw_overlay(glm::uvec2 const &drawable_size);
@@ -126,7 +122,7 @@ struct PlayMode : Mode
 
     float water_surface_y = 570.0f;
     float max_depth = 100.0f;
-    float depth_transition = 20.0f;//transition state between light and dark
+    float depth_transition = 20.0f; // transition state between light and dark
     glm::vec3 base_water_color = glm::vec3(0.0f, 0.06f, 0.12f);
     // parameter: remaining energy percentage, depth
     float k = -std::log(0.3f) / 100.0f;
@@ -139,11 +135,19 @@ struct PlayMode : Mode
     //  (return true if data was read)
     bool recv_state_message(Connection *connection);
     bool recv_notification_message(Connection *connection);
+    void send_data_message(Connection *connection) const;
 
     std::vector<NetworkObject> get_objects(ObjectType type) const;
     NetworkObject get_object(uint32_t id) const;
     Player::PlayerData local_player_data() const
     {
-        return player_data.at(local_player->id);
+        if (!local_player)
+            return Player::PlayerData{};
+        auto it = player_data.find(local_player->id);
+        if (it == player_data.end())
+        {
+            return Player::PlayerData{};
+        }
+        return it->second;
     }
 };

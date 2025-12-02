@@ -493,6 +493,14 @@ bool Player::Controls::recv_controls_message(Connection *connection_)
 
 void Player::PlayerData::send(Connection *connection) const
 {
+    // name
+    uint32_t len = (uint32_t)pname.size();
+    connection->send(len);
+    connection->send_buffer.insert(
+        connection->send_buffer.end(),
+        pname.begin(),
+        pname.end());
+
     // general
     connection->send(status);
     connection->send(hp);
@@ -529,6 +537,23 @@ void Player::PlayerData::receive(uint32_t *at, std::vector<uint8_t> &recv_buffer
         std::memcpy(val, &recv_buffer[4 + *at], sizeof(*val));
         *at += sizeof(*val);
     };
+
+    auto read_string = [&]()
+    {
+        uint32_t len;
+        std::memcpy(&len, &recv_buffer[4 + *at], sizeof(uint32_t));
+        *at += sizeof(uint32_t);
+
+        if (4 + *at + len > recv_buffer.size())
+        {
+            throw std::runtime_error("Ran out of bytes reading notification.");
+        }
+
+        std::string s((char *)&recv_buffer[4 + *at], len);
+        *at += len;
+        return s;
+    };
+    pname = read_string();
 
     // general
     read(&status);

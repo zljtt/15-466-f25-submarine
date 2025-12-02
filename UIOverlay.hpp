@@ -74,11 +74,14 @@ struct UIOverlay
         return data;
     };
 
-    void update_text(const std::string id, const std::string text, glm::vec2 relative_pos, Alignment anchor = BottomLeft)
+    void update_text(const std::string id, const std::string text, glm::vec2 relative_pos, Alignment anchor = BottomLeft, bool update = true)
     {
         texts[id].text = text;
         texts[id].pos = get_anchored_pos(anchor, relative_pos);
-        update_data();
+        if (update)
+        {
+            update_data();
+        }
     }
 
     void update_image(const std::string id, GLuint tex, glm::vec2 size, glm::vec2 relative_pos, Alignment anchor = BottomLeft)

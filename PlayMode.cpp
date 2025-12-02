@@ -26,13 +26,12 @@
 
 #include "load_save_png.hpp"
 
-
 std::mt19937 rng(std::random_device{}());
 
 const std::string PlayMode::HP = "HP";
 
-PlayMode::PlayMode(Client &client_) : scene(*prototype_scene), radar(this), client(client_)
-{   
+PlayMode::PlayMode(std::string const &host, std::string const &port, std::string const &name) : scene(*prototype_scene), local_name(name), radar(this), client(host, port)
+{
     // get pointer to camera for convenience:
     if (scene.cameras.size() != 1)
         throw std::runtime_error("Expecting scene to have exactly one camera, but it has " + std::to_string(scene.cameras.size()));
@@ -67,11 +66,11 @@ PlayMode::PlayMode(Client &client_) : scene(*prototype_scene), radar(this), clie
     text_overlays.emplace_back(renderer_notification.value); // NOTIFICATION
     text_overlays.emplace_back(renderer_large.value);        // NOTIFICATION
 
-
-    //Background Music
-    BGM_Shallow = Sound::loop(*Shallow_BGM,0.1f);
-    BGM_Deep = Sound::loop(*Deep_BGM,0.0f);
-    BGM_Urgent = Sound::loop(*Drums,0.0f);
+    // Background Music
+    BGM_Shallow = Sound::loop(*Shallow_BGM, 0.1f);
+    BGM_Deep = Sound::loop(*Deep_BGM, 0.0f);
+    BGM_Urgent = Sound::loop(*Drums, 0.0f);
+    send_data_message(&client.connection);
     // text_overlays[RADAR].update_image("test", *tex_radar_result, glm::vec2(100, 100), glm::vec2(100, 100));
 }
 
@@ -277,18 +276,18 @@ void PlayMode::execute_network_soundcues(ObjectType type, uint8_t sc, glm::vec3 
 {
     if (type == ObjectType::Player)
     {
-        float atten = std::min(1.5f, 3.0f/glm::length(glm::vec2(pos.x,pos.y)- local_player->position));
+        float atten = std::min(1.5f, 3.0f / glm::length(glm::vec2(pos.x, pos.y) - local_player->position));
 
         if (toPlay(sc, SoundCues::Start))
         {
             // std::cout << "start engine" << id << std::endl;
             if (sub_moving.find(id) == sub_moving.end())
-                sub_moving[id] = Sound::loop_3D(*Submarine_Moving, 0.0f, pos , 0.2f);
-            sub_moving[id]->set_volume(atten*66.0f, 1.0f);
-            
+                sub_moving[id] = Sound::loop_3D(*Submarine_Moving, 0.0f, pos, 0.2f);
+            sub_moving[id]->set_volume(atten * 66.0f, 1.0f);
+
             if (!sub_stop[id] || sub_stop[id]->stopped)
             {
-                sub_start[id] = Sound::play_3D(*Submarine_Start, atten*16.0f, pos ,1.0f);
+                sub_start[id] = Sound::play_3D(*Submarine_Start, atten * 16.0f, pos, 1.0f);
             }
         }
         if (toPlay(sc, SoundCues::Stop))
@@ -296,14 +295,16 @@ void PlayMode::execute_network_soundcues(ObjectType type, uint8_t sc, glm::vec3 
             // std::cout << "stop engine" << id << std::endl;
             if (!sub_stop[id] || sub_stop[id]->stopped)
             {
-                sub_stop[id] = Sound::play_3D(*Submarine_Stop, atten*16.0f, pos ,1.0f);
+                sub_stop[id] = Sound::play_3D(*Submarine_Stop, atten * 16.0f, pos, 1.0f);
             }
 
             sub_moving[id]->set_volume(0.0f, 1.0f);
         }
-        if(toPlay(sc,SoundCues::Hit_TORP)){
-            //std::cout<<"torpedo_Hit"<<std::endl;
-            if(id != local_player->id)Sound::play_3D(*Torpedo_Hit, 45.0f, pos, 0.5f);
+        if (toPlay(sc, SoundCues::Hit_TORP))
+        {
+            // std::cout<<"torpedo_Hit"<<std::endl;
+            if (id != local_player->id)
+                Sound::play_3D(*Torpedo_Hit, 45.0f, pos, 0.5f);
         }
         if (toPlay(sc, SoundCues::Hit))
         {
@@ -311,29 +312,32 @@ void PlayMode::execute_network_soundcues(ObjectType type, uint8_t sc, glm::vec3 
             {
                 return;
             }
-            if(id == local_player->id)
-            sub_hit = Sound::play(*Submarine_Hit, 0.6f);
+            if (id == local_player->id)
+                sub_hit = Sound::play(*Submarine_Hit, 0.6f);
         }
-        
+
         if (toPlay(sc, SoundCues::GetPoint))
         {
-            Sound::play_3D(*Submarine_Submit,3.0f,pos,10.0f);
-            //stop drms
+            Sound::play_3D(*Submarine_Submit, 3.0f, pos, 10.0f);
+            // stop drms
             BGM_Urgent->set_volume(0.0f);
         }
-        if(toPlay(sc,SoundCues::Capture)){
-            std::cout<<"DRUMS "<<sc<<std::endl;
-            BGM_Urgent->set_volume(0.8f,4.0f);
+        if (toPlay(sc, SoundCues::Capture))
+        {
+            std::cout << "DRUMS " << sc << std::endl;
+            BGM_Urgent->set_volume(0.8f, 4.0f);
         }
     }
-    else if(type == ObjectType::Torpedo){
-        //std::cout<<"getting "<<sc<<std::endl;
-        if(toPlay(sc,SoundCues::JustSpawned)){
+    else if (type == ObjectType::Torpedo)
+    {
+        // std::cout<<"getting "<<sc<<std::endl;
+        if (toPlay(sc, SoundCues::JustSpawned))
+        {
             Sound::play_3D(*Submarine_Launch_Torpedo, 45.0f, pos, 0.5f);
         }
     }
-    else if(type == ObjectType::Flag){
-        
+    else if (type == ObjectType::Flag)
+    {
     }
 }
 
@@ -399,18 +403,25 @@ void PlayMode::update_connection(float elapsed)
 
 void PlayMode::update_radar(float elapsed)
 {
-    if (controls.radar.downs && local_player_data().status == Player::Play && radar.special_radar_timer <= 0)
+    if (local_player && player_data.count(local_player->id) &&
+        controls.radar.downs && local_player_data().status == Player::Play && radar.special_radar_timer <= 0)
     {
         radar.scan_special(local_player, 999);
-        std::cout<<"playing superscan"<<std::endl;
-        Sound::play(*Submarine_Superscan,0.5f,0.0f);
+        std::cout << "playing superscan" << std::endl;
+        Sound::play(*Submarine_Superscan, 0.5f, 0.0f);
     }
     radar.update(elapsed);
 }
 
 void PlayMode::update_camera(float elapsed)
 {
-    glm::vec2 local_pos = network_drawables[local_player->id]->transform->position;
+    if (!local_player)
+        return;
+    auto it = network_drawables.find(local_player->id);
+    if (it == network_drawables.end())
+        return;
+
+    glm::vec2 local_pos = it->second->transform->position;
 
     camera->transform->position = glm::vec3(local_pos.x, local_pos.y, camera->transform->position.z);
 }
@@ -421,7 +432,14 @@ void PlayMode::update_animation(float elapsed)
     // trivial turning animation
     glm::vec3 eulerAnglesDegrees = glm::vec3(180.0f, 0.0f, 0.0f);
     glm::vec3 eulerAnglesRadians = glm::radians(eulerAnglesDegrees);
-    network_drawables[local_player->id]->transform->rotation = local_player_data().player_facing ? glm::quat(eulerAnglesRadians) : glm::quat(0, 0, 0, 1);
+    if (local_player)
+    {
+        auto it = network_drawables.find(local_player->id);
+        if (it != network_drawables.end())
+        {
+            it->second->transform->rotation = local_player_data().player_facing ? glm::quat(eulerAnglesRadians) : glm::quat(0, 0, 0, 1);
+        }
+    }
 
     for (auto p : player_data)
     {
@@ -447,33 +465,43 @@ void PlayMode::update_animation(float elapsed)
         {
             float theta = std::atan2(obj.velocity.y, obj.velocity.x);
             glm::quat rotation = glm::angleAxis(theta, glm::vec3(0, 0, 1));
-            network_drawables[obj.id]->transform->rotation = glm::quat(0, 0, 0, 1) * rotation;
+            auto it = network_drawables.find(obj.id);
+            if (it != network_drawables.end())
+            {
+                it->second->transform->rotation = glm::quat(0, 0, 0, 1) * rotation;
+            }
         }
     }
 }
 
 void PlayMode::update_sound(float elapsed)
 {
-    //update background music
+    // update background music
 
-    //blend deep and shallow based on depth
+    // blend deep and shallow based on depth
+    if (!local_player)
+        return;
     glm::vec2 player_pos = local_player_pos();
     float depth = glm::max(0.0f, water_surface_y - player_pos.y);
     float complete_fade_factor = 1.0f - glm::smoothstep(max_depth, max_depth + depth_transition, depth);
-    BGM_Shallow->set_volume(0.2f*complete_fade_factor);
-    BGM_Deep->set_volume(0.2f*(1.0f - complete_fade_factor));
-    //play sparse melodies
+    BGM_Shallow->set_volume(0.2f * complete_fade_factor);
+    BGM_Deep->set_volume(0.2f * (1.0f - complete_fade_factor));
+    // play sparse melodies
     std::uniform_real_distribution<float> dist(0.0f, 1.0f);
-    float r = dist(rng); 
-    if (BGM_Shallow->looped.exchange(false, std::memory_order_acquire)) {
-        if(r<0.2f && r>0.13){
-            (complete_fade_factor > 0.5f) ? Sound::play(*Shallow_Melody1,0.5f) : Sound::play(*Deep_Melody1,0.5f);
+    float r = dist(rng);
+    if (BGM_Shallow->looped.exchange(false, std::memory_order_acquire))
+    {
+        if (r < 0.2f && r > 0.13)
+        {
+            (complete_fade_factor > 0.5f) ? Sound::play(*Shallow_Melody1, 0.5f) : Sound::play(*Deep_Melody1, 0.5f);
         }
-        if(r<0.13f && r>0.06){
-            (complete_fade_factor > 0.5f) ? Sound::play(*Shallow_Melody2,0.5f) : Sound::play(*Deep_Melody2,0.5f);
+        if (r < 0.13f && r > 0.06)
+        {
+            (complete_fade_factor > 0.5f) ? Sound::play(*Shallow_Melody2, 0.5f) : Sound::play(*Deep_Melody2, 0.5f);
         }
-        if(r<0.06f){
-            (complete_fade_factor > 0.5f) ? Sound::play(*Shallow_Melody3,0.5f) : Sound::play(*Deep_Melody3,0.5f);
+        if (r < 0.06f)
+        {
+            (complete_fade_factor > 0.5f) ? Sound::play(*Shallow_Melody3, 0.5f) : Sound::play(*Deep_Melody3, 0.5f);
         }
     }
 
@@ -486,7 +514,7 @@ void PlayMode::update_sound(float elapsed)
         {
 
             // Scene::Transform *loc = network_drawables[local_player->id]->transform;
-            //std::cout << network_drawables[local_player->id]->pipeline.count << " " << loc->position.x << " " << loc->position.y << " " << loc->position.z << loc->scale.x << std::endl;
+            // std::cout << network_drawables[local_player->id]->pipeline.count << " " << loc->position.x << " " << loc->position.y << " " << loc->position.z << loc->scale.x << std::endl;
             execute_network_soundcues(netObj.type, netObj.sound_cues, glm::vec3(netObj.position, 1.5f), netObj.id);
             // clear the sound_cues
             netObj.sound_cues = 0;
@@ -526,11 +554,16 @@ void PlayMode::update_spotlight(float elapsed)
 
     for (auto p : player_data)
     {
-        light_mesh_data[p.first]->scale = p.second.light_on ? glm::vec3(3.0f, 3.0f, 10.0f) : glm::vec3(0.0f, 0.0f, 0.0f);
+        auto lm = light_mesh_data.find(p.first);
+        auto drawable = network_drawables.find(p.first);
+        if (lm == light_mesh_data.end() || drawable == network_drawables.end())
+            continue;
+
+        lm->second->scale = p.second.light_on ? glm::vec3(3.0f, 3.0f, 10.0f) : glm::vec3(0.0f, 0.0f, 0.0f);
         glm::vec3 pos_offset = p.second.player_facing ? glm::vec3(11.0f, 0.0f, 0.0f) : glm::vec3(-11.0f, 0.0f, 0.0f);
         glm::quat rot = p.second.player_facing ? glm::angleAxis(glm::radians(-90.0f), glm::vec3(0, 1, 0)) : glm::angleAxis(glm::radians(90.0f), glm::vec3(0, 1, 0));
-        light_mesh_data[p.first]->position = network_drawables[p.first]->transform->position + pos_offset;
-        light_mesh_data[p.first]->rotation = rot;
+        lm->second->position = drawable->second->transform->position + pos_offset;
+        lm->second->rotation = rot;
     }
 }
 
@@ -608,14 +641,16 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
         // scene.draw(*camera);
     }
 
-    //torpedo light
-    for(auto torp: network_objects){
-        if(torp.type != ObjectType::Torpedo){
+    // torpedo light
+    for (auto torp : network_objects)
+    {
+        if (torp.type != ObjectType::Torpedo)
+        {
             continue;
         }
         glm::vec3 point_light_pos(torp.position.x, torp.position.y, 2.5f);
-        //determine the energy of the point light based on distance to local player
-        float distance_diminish = std::min(1.0f, 3.0f/glm::length(torp.position - local_player->position));
+        // determine the energy of the point light based on distance to local player
+        float distance_diminish = std::min(1.0f, 3.0f / glm::length(torp.position - local_player->position));
         glm::vec3 point_light_energy(10.0f, 5.0f, 5.0f);
         // glm::vec3 point_light_energy(0.0f, 0.0f, 0.0f);
 
@@ -624,16 +659,15 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
         light_dirs.push_back(glm::vec3(0.0f));
         light_energies.push_back(point_light_energy * distance_diminish);
         light_cutoffs.push_back(0.0f);
-
     }
 
     // player point light
-    for(auto data : player_data)
+    for (auto data : player_data)
     {
         auto player = get_object(data.first);
         glm::vec3 point_light_pos(player.position.x, player.position.y + 1.8f, 2.5f);
-        //determine the energy of the point light based on distance to local player
-        float distance_diminish = std::min(1.0f, 1.0f/glm::length(player.position - local_player->position));
+        // determine the energy of the point light based on distance to local player
+        float distance_diminish = std::min(1.0f, 1.0f / glm::length(player.position - local_player->position));
         glm::vec3 point_light_energy(20.0f, 20.0f, 30.0f);
         // glm::vec3 point_light_energy(0.0f, 0.0f, 0.0f);
 
@@ -710,7 +744,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
     }
     // glDisable(GL_BLEND);
 
-
     GLsizei light_count = static_cast<GLsizei>(light_types.size());
 
     if (int(light_count) > int(BasicMaterialForwardProgram::MaxLights))
@@ -735,8 +768,36 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
 
 glm::vec2 PlayMode::local_player_pos()
 {
-    glm::vec3 p = network_drawables[local_player->id]->transform->position;
+    if (!local_player)
+        return glm::vec2(0.0f);
+    auto it = network_drawables.find(local_player->id);
+    if (it == network_drawables.end())
+        return glm::vec2(0.0f);
+    glm::vec3 p = it->second->transform->position;
     return {p.x, p.y};
+}
+
+void PlayMode::send_data_message(Connection *connection) const
+{
+    // auto &connection = *connection_;
+    // assert(connection);
+    connection->send(Message::C2S_Data);
+    connection->send(uint8_t(0));
+    connection->send(uint8_t(0));
+    connection->send(uint8_t(0));
+    size_t mark = connection->send_buffer.size(); // keep track of this position in the buffer
+    uint32_t len = (uint32_t)local_name.size();
+
+    connection->send(len);
+    connection->send_buffer.insert(
+        connection->send_buffer.end(),
+        local_name.begin(),
+        local_name.end());
+
+    uint32_t size = uint32_t(connection->send_buffer.size() - mark);
+    connection->send_buffer[mark - 3] = uint8_t(size);
+    connection->send_buffer[mark - 2] = uint8_t(size >> 8);
+    connection->send_buffer[mark - 1] = uint8_t(size >> 16);
 }
 
 bool PlayMode::recv_notification_message(Connection *connection_)
@@ -811,6 +872,7 @@ bool PlayMode::recv_state_message(Connection *connection_)
     };
 
     network_objects.clear();
+    local_player = nullptr;
     uint8_t network_objects_count;
     read(&network_objects_count);
     for (uint8_t i = 0; i < network_objects_count; ++i)
@@ -818,16 +880,7 @@ bool PlayMode::recv_state_message(Connection *connection_)
 
         network_objects.emplace_back();
         NetworkObject &obj = network_objects.back();
-        if (obj.sound_cues != 0)
-        {
-            std::cout << "what the hec" << std::endl;
-        };
         obj.receive(&at, recv_buffer);
-        // find local player
-        if (i == 0)
-        {
-            local_player = &obj;
-        }
         // find drawable
         auto drawable = network_drawables.find(obj.id);
         // delete if mark deleted
@@ -841,6 +894,11 @@ bool PlayMode::recv_state_message(Connection *connection_)
             }
             network_objects.pop_back();
             continue;
+        }
+        // track local player (server sends local first)
+        if (i == 0)
+        {
+            local_player = &obj;
         }
         // create drawable if not exit on client
         if (drawable == network_drawables.end())

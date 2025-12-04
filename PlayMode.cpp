@@ -542,16 +542,6 @@ void PlayMode::update_sound(float elapsed)
 
 void PlayMode::update_spotlight(float elapsed)
 {
-    // calculate spotlight direction
-    // glm::vec2 cur_player_pos = local_player_pos();
-    // glm::vec2 velocity = cur_player_pos - prev_player_pos;
-    // prev_player_pos = cur_player_pos;
-
-    // if (velocity.x > 1e-3f)
-    //     spot_light_dir_x = 1.0f;
-    // else if (velocity.x < -1e-3f)
-    //     spot_light_dir_x = -1.0f;
-
     for (auto p : player_data)
     {
         auto lm = light_mesh_data.find(p.first);
@@ -559,11 +549,32 @@ void PlayMode::update_spotlight(float elapsed)
         if (lm == light_mesh_data.end() || drawable == network_drawables.end())
             continue;
 
-        lm->second->scale = p.second.light_on ? glm::vec3(3.0f, 3.0f, 10.0f) : glm::vec3(0.0f, 0.0f, 0.0f);
-        glm::vec3 pos_offset = p.second.player_facing ? glm::vec3(11.0f, 0.0f, 0.0f) : glm::vec3(-11.0f, 0.0f, 0.0f);
-        glm::quat rot = p.second.player_facing ? glm::angleAxis(glm::radians(-90.0f), glm::vec3(0, 1, 0)) : glm::angleAxis(glm::radians(90.0f), glm::vec3(0, 1, 0));
-        lm->second->position = drawable->second->transform->position + pos_offset;
-        lm->second->rotation = rot;
+        Scene::Transform *cone_transform = lm->second;
+        Scene::Drawable  *player_drawable = drawable->second;
+        auto player = get_object(p.first);
+
+        cone_transform->scale = p.second.light_on ? glm::vec3(3.0f, 3.0f, 10.0f) : glm::vec3(0.0f, 0.0f, 0.0f);
+
+        glm::vec2 velocity = player.velocity;
+        glm::vec3 direction;
+
+        if (glm::length(velocity) > 1e-3f) {
+            direction = glm::normalize(glm::vec3(velocity, 0.0f));
+        } 
+        else {
+            direction = p.second.player_facing ? glm::vec3(1.0f, 0.0f, 0.0f)
+                                       : glm::vec3(-1.0f, 0.0f, 0.0f);
+        }
+
+        float theta = std::atan2(direction.y, direction.x);
+        glm::quat yaw = glm::angleAxis(theta, glm::vec3(0, 0, 1));
+        glm::quat base = glm::angleAxis(glm::radians(-90.0f), glm::vec3(0, 1, 0));
+
+        float offset_dist = 11.0f;
+        glm::vec3 pos_offset = direction * offset_dist;
+
+        cone_transform->rotation = yaw * base;
+        cone_transform->position = player_drawable->transform->position + pos_offset;
     }
 }
 
@@ -701,18 +712,24 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
         if (!data.second.light_on)
             continue;
         auto player = get_object(data.first);
+        glm::vec2 velocity = player.velocity;
+        glm::vec3 spot_light_dir;
+
+        if (glm::length(velocity) > 1e-3f) {
+            spot_light_dir = glm::normalize(glm::vec3(velocity, 0.0f));
+        } 
+        else {
+            spot_light_dir = data.second.player_facing ? glm::vec3(1.0f, 0.0f, 0.0f)
+                                       : glm::vec3(-1.0f, 0.0f, 0.0f);
+        }
 
         spotlight_z = 0.0f;
-        // float spot_light_pos_x =    data.second.player_facing ? player.position.x - 21.0f : player.position.x + 21.0f;
         glm::vec3 spot_light_pos(player.position.x, player.position.y, spotlight_z);
         // glm::vec3 spot_light_energy(2500.0f, 2500.0f, 2500.0f);
         glm::vec3 spot_light_energy(250.0f, 250.0f, 250.0f);
 
-        glm::vec3 spot_light_dir(data.second.player_facing ? 1.0f : -1.0f, 0.0f, 0.0f);
-        spot_light_dir = glm::normalize(spot_light_dir);
         float cos_cutoff = std::cos(cutoff);
 
-        // spot_light_dir = -spot_light_dir;
 
         // std::cout << "spotlight pos: "
         // << spot_light_pos.x << " "

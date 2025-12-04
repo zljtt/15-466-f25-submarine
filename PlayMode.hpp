@@ -127,7 +127,7 @@ struct PlayMode : Mode
     // parameter: remaining energy percentage, depth
     float k = -std::log(0.3f) / 100.0f;
     float spotlight_z = 0.0f;
-    float cutoff = glm::radians(8.0f);
+    float cutoff = glm::radians(7.8f);
     std::unordered_map<uint32_t, Scene::Transform *> light_mesh_data;
 
     // used by client:

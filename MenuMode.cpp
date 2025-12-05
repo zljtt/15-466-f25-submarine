@@ -77,8 +77,8 @@ bool MenuMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
             SDL_SetWindowRelativeMouseMode(Mode::window, false);
             return true;
         }
-        std::string &current = current_text == 0 ? ip : (current_text == 1 ? port : name);
-        if (evt.key.key == SDLK_BACKSPACE && !current.empty())
+        std::string &current_input = current_text == 0 ? ip : (current_text == 1 ? port : name);
+        if (evt.key.key == SDLK_BACKSPACE && !current_input.empty())
         {
             if (current_text == 0)
             {

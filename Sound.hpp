@@ -2,6 +2,8 @@
 
 #include <glm/glm.hpp>
 
+#include <atomic>
+#include <limits>
 #include <memory>
 #include <vector>
 #include <string>

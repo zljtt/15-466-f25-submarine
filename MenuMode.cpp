@@ -2,6 +2,7 @@
 #include "Registry.hpp"
 #include "PlayMode.hpp"
 #include "UIOverlay.hpp"
+#include "Mode.hpp"
 
 #include <iostream>
 

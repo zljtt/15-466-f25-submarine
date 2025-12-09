@@ -198,7 +198,7 @@ Server::Server(std::string const &port) {
 	{ //use getaddrinfo to look up how to bind to port:
 		struct addrinfo hints;
 		memset(&hints, 0, sizeof(hints));
-		hints.ai_family = AF_UNSPEC;
+		hints.ai_family = AF_INET;
 		hints.ai_socktype = SOCK_STREAM;
 		hints.ai_flags = AI_PASSIVE;
 
@@ -216,12 +216,12 @@ Server::Server(std::string const &port) {
 				char ip[INET6_ADDRSTRLEN];
 				if (info->ai_family == AF_INET) {
 					struct sockaddr_in *s = reinterpret_cast< struct sockaddr_in * >(info->ai_addr);
-					inet_ntop(res->ai_family, &s->sin_addr, ip, sizeof(ip));
+					inet_ntop(info->ai_family, &s->sin_addr, ip, sizeof(ip));
 					std::cout << ip << ":" << ntohs(s->sin_port);
 				} else if (info->ai_family == AF_INET6) {
 					struct sockaddr_in6 *s = reinterpret_cast< struct sockaddr_in6 * >(info->ai_addr);
-					inet_ntop(res->ai_family, &s->sin6_addr, ip, sizeof(ip));
-					std::cout << ip << ":" << ntohs(s->sin6_port);
+					inet_ntop(info->ai_family, &s->sin6_addr, ip, sizeof(ip));
+					std::cout <<" ipv6 "<< ip << ":" << ntohs(s->sin6_port);
 				} else {
 					std::cout << "[unknown ai_family]";
 				}
@@ -294,13 +294,14 @@ Client::Client(std::string const &host, std::string const &port) : connections(1
 		if (WSAStartup((2 << 8) | 2, &info) != 0) {
 			throw std::runtime_error("WSAStartup failed.");
 		}
+		
 	}
 	#endif
 
 	{ //use getaddrinfo to look up how to bind to host/port:
 		struct addrinfo hints;
 		memset(&hints, 0, sizeof(hints));
-		hints.ai_family = AF_UNSPEC;
+		hints.ai_family = AF_INET;
 		hints.ai_socktype = SOCK_STREAM;
 		hints.ai_protocol = IPPROTO_TCP;
 
@@ -318,12 +319,12 @@ Client::Client(std::string const &host, std::string const &port) : connections(1
 				char ip[INET6_ADDRSTRLEN];
 				if (info->ai_family == AF_INET) {
 					struct sockaddr_in *s = reinterpret_cast< struct sockaddr_in * >(info->ai_addr);
-					inet_ntop(res->ai_family, &s->sin_addr, ip, sizeof(ip));
+					inet_ntop(info->ai_family, &s->sin_addr, ip, sizeof(ip));
 					std::cout << ip << ":" << ntohs(s->sin_port);
 				} else if (info->ai_family == AF_INET6) {
 					struct sockaddr_in6 *s = reinterpret_cast< struct sockaddr_in6 * >(info->ai_addr);
-					inet_ntop(res->ai_family, &s->sin6_addr, ip, sizeof(ip));
-					std::cout << ip << ":" << ntohs(s->sin6_port);
+					inet_ntop(info->ai_family, &s->sin6_addr, ip, sizeof(ip));
+					std::cout <<" ipv6 "<< ip << ":" << ntohs(s->sin6_port);
 				} else {
 					std::cout << "[unknown ai_family]";
 				}
@@ -331,13 +332,22 @@ Client::Client(std::string const &host, std::string const &port) : connections(1
 			}
 
 			Socket s = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
+			// #ifdef _WIN32
+			// 	unsigned long one = 1;
+			// 	ioctlsocket(s, FIONBIO, &one);
+			// #endif
 			if (s == InvalidSocket) {
 				std::cout << "(failed to create socket: " << strerror(errno) << ")" << std::endl;
 				continue;
 			}
 			int ret = connect(s, info->ai_addr, int(info->ai_addrlen));
 			if (ret < 0) {
-				std::cout << "(failed to connect: " << strerror(errno) << ")" << std::endl;
+				#ifdef _WIN32
+					int err = WSAGetLastError();
+					std::cout << "(failed to connect: " << err << ")" << std::endl;
+					closesocket(s);
+				#endif
+				std::cout << "(failed to connect: " << strerror(errno) << ")" << std::endl;	
 				continue;
 			}
 			std::cout << "success!" << std::endl;
